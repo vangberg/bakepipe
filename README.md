@@ -11,9 +11,9 @@ Here's how these scripts would look:
 ```r
 # analysis.r
 
-data <- read.csv(file_in("data.csv"))
+data <- read.csv(bakepipe::file_in("data.csv"))
 stats <- table(data)
-write.csv(stats, file_out("analysis.csv"))
+write.csv(stats, bakepipe::file_out("analysis.csv"))
 ```
 
 ```r
@@ -21,10 +21,10 @@ write.csv(stats, file_out("analysis.csv"))
 
 library(ggplot2)
 
-data <- read.csv(file_in("analysis.csv"))
+data <- read.csv(bakepipe::file_in("analysis.csv"))
 ggplot(data, aes(x = variable, y = value)) + geom_point()
-ggsave(file_out("plot1.png"))
-ggsave(file_out("plot2.png"))
+ggsave(bakepipe::file_out("plot1.png"))
+ggsave(bakepipe::file_out("plot2.png"))
 ```
 
 The magic happens through `file_in` and `file_out` functions. These don't actually read or write files - they just mark dependencies so bakepipe can figure out what needs to run when. When you're ready to run your pipeline, simply call:
