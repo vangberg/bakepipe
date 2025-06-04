@@ -15,8 +15,8 @@ Bakepipe is an R library that turns your script-based workflows into reproducibl
   - [Run pipeline](#run-pipeline)
   - [Show pipeline](#show-pipeline)
 - [Frequently asked questions](#frequently-asked-questions)
-  - [How does Bakepipe determine script execution order?](#how-does-bakepipe-determine-script-execution-order)
-  - [Does Bakepipe cache outputs?](#does-bakepipe-cache-outputs)
+  - [How is script execution order determined?](#how-is-script-execution-order-determined)
+  - [Are outputs cached?](#are-outputs-cached)
   - [How does Bakepipe compare to other pipeline tools?](#how-does-bakepipe-compare-to-other-pipeline-tools)
 
 ## Motivation
@@ -129,11 +129,11 @@ bakepipe::show()
 
 ## Frequently asked questions
 
-### How does Bakepipe determine script execution order?
+### How is script execution order determined?
 
 Bakepipe determines the correct execution order through static analysis of your R scripts, looking for `file_in` and `file_out` calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don't need to refactor your scripts into functions or drastically change your script structure beyond adding the `file_in()` and `file_out()` calls.
 
-### Does Bakepipe cache outputs?
+### Are outputs cached?
 
 Currently, Bakepipe does not perform any caching or checks to determine if a script needs to be re-run. When `bakepipe::run()` is called, all scripts in the pipeline graph are executed in their determined topological order every time. While this ensures reproducibility by always running the full analysis, it means computational steps are not skipped if inputs haven't changed. Caching and conditional execution based on file checks are planned features for future releases.
 
