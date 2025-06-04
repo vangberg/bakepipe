@@ -1,0 +1,7 @@
+Package: bakepipe
+Version: 0.0.1
+Title: Just-Good-Enough Pipeline Library for R
+Description: Bakepipe helps manage dependencies between R scripts in a script-based workflow.
+Author: Jules @ Google
+License: MIT
+Encoding: UTF-8
