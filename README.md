@@ -2,6 +2,23 @@
 
 Bakepipe is an R library that turns your script-based workflows into reproducible pipelines. It's designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.
 
+## Table of Contents
+
+- [Motivation](#motivation)
+- [Quick Start](#quick-start)
+  - [Installation](#installation)
+  - [Your First Pipeline](#your-first-pipeline)
+- [Example](#example)
+- [API](#api)
+  - [Mark input](#mark-input)
+  - [Mark output](#mark-output)
+  - [Run pipeline](#run-pipeline)
+  - [Show pipeline](#show-pipeline)
+- [Frequently asked questions](#frequently-asked-questions)
+  - [How does Bakepipe determine script execution order?](#how-does-bakepipe-determine-script-execution-order)
+  - [Does Bakepipe cache outputs?](#does-bakepipe-cache-outputs)
+  - [How does Bakepipe compare to other pipeline tools?](#how-does-bakepipe-compare-to-other-pipeline-tools)
+
 ## Motivation
 
 When analyzing data in R, you often start with everything in a single script. As the analysis broadens, you might split it into multiple scripts. One script might read in the data, clean it up, maybe merge multiple datasets. Statistics are run in another script, while plots are generated in a third. Each script writes data to be used by another script. This is all fine, but eventually it gets out of hand. You need to manually run the scripts in the right order, manually tracking these file dependencies. This manual tracking can lead to errors, forgotten steps, and headaches, especially when sharing your analysis with colleagues.
