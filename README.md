@@ -1,39 +1,56 @@
 # Bakepipe
 
-Bakepipe is a just-good-enough pipeline library for R. It embraces script based workflows, where each script is a self-contained unit that can be run independently, sharing intermediate results through files stored on disk.
+Bakepipe is an R library that turns your script-based workflows into reproducible pipelines.
 
-## Walkthrough
+## Motivation
 
-### The problem
+When analysing data in R you often start out with everything in a single script. As the analysis broadens, you might split it into multiple scripts. One script might read in the data, clean it up, maybe merge multiple datasets. Statistics are run in another script, while plots are generated in a third. Each script writes data to be used by another script. This is all fine, but eventually it gets out of hand. You need to manually run the scripts in the right order, manually tracking the dependencies.
 
-Let's say you have a raw dataset in `data.csv` that you want to analyze and visualize. You can split this into two scripts: `analysis.R` processes the raw data and saves results to `analysis.csv`, while `plots.R` creates visualizations from those results, saving them as `plot1.png` and `plot2.png`.
+Bakepipe helps you manage this by tracking the dependencies between scripts and running them in the right order.
 
-Now, you need to run the scripts in the right order. You can do this manually, but it's easy to forget or mess up. This is where Bakepipe comes in, by keeping track of the dependencies between the scripts and running them in the right order.
+## Example
 
-### The solution
+In our example, we have the following files:
 
-Here's how these scripts would look:
+| File | Description |
+|------|-------------|
+| `sales.csv` | Daily sales data with product categories and revenue |
+| `analysis.R` | Calculates monthly sales summaries |
+| `plots.R` | Creates a monthly trend plot |
+
+The workflow looks like this:
+
+```mermaid
+graph LR
+    data[(sales.csv)] -->|read by| analysis[analysis.R]
+    analysis -->|writes| results[(monthly_sales.csv)]
+    results -->|read by| plots[plots.R]
+    plots -->|writes| plot{{monthly_trend.png}}
+```
+
+Here is what the scripts look like:
 
 ```r
 # analysis.R
-
 library(bakepipe)
+library(dplyr)
 
-data <- read.csv(file_in("data.csv"))
-stats <- table(data)
-write.csv(stats, file_out("analysis.csv"))
+sales <- read.csv(file_in("sales.csv"))
+monthly <- sales %>% 
+  group_by(month, category) %>% 
+  summarize(revenue = sum(revenue))
+write.csv(monthly, file_out("monthly_sales.csv"), row.names = FALSE)
 ```
 
 ```r
 # plots.R
-
 library(bakepipe)
 library(ggplot2)
 
-data <- read.csv(file_in("analysis.csv"))
-ggplot(data, aes(x = variable, y = value)) + geom_point()
-ggsave(file_out("plot1.png"))
-ggsave(file_out("plot2.png"))
+monthly <- read.csv(file_in("monthly_sales.csv"))
+ggplot(monthly, aes(month, revenue, color = category)) + 
+  geom_line() +
+  ggsave(file_out("monthly_trend.png"))
 ```
 
 `file_in` and `file_out` are used to mark the input and output of the script. They both return the path to the file, so they can be used when reading or writing the file. They don't actually read or write files - they just mark dependencies so Bakepipe can figure out what needs to run when.
@@ -43,7 +60,6 @@ bakepipe::run()
 ```
 
 This will execute your scripts in the right order and tell you which files were created.
-
 
 ## API
 
@@ -83,11 +99,17 @@ between the files.
 bakepipe::show()
 ```
 
-## Compared with …
+## Frequently asked questions
+
+### How does Bakepipe detect dependencies?
+
+Bakepipe detects dependencies through static analysis of your R scripts, looking for `file_in` and `file_out` calls. It parses the scripts without executing them to build a graph of the dependencies, which it then uses to determine the correct execution order.
+
+### How does Bakepipe compare to other pipeline tools?
 
 I want to preface this comparison by saying that Bakepipe is much more limited in scope than other pipeline tools. It's not a replacement for tools like Snakemake or Nextflow, but rather a tool for simple workflows that don't need the complexity of those tools. Yet, I want to highlight some of the features that make Bakepipe unique.
 
-### Snakemake
+#### Snakemake
 
 With Snakemake, you would define the workflow from the walkthrough above as follows:
 
@@ -114,7 +136,7 @@ snakemake
 
 Compared with Bakepipe, I think this adds friction. You need to do double bookkeeping, manually keeping the Snakefile and the scripts in sync.
 
-### targets
+#### targets
 
 To implement the same workflow in targets, you would need to refactor the scripts into functions, and then use the `tar_target` function to define the targets.
 
