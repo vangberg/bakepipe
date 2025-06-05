@@ -13,7 +13,7 @@ Bakepipe is an R library that turns your script-based workflows into reproducibl
   - [Mark input](#mark-input)
   - [Mark output](#mark-output)
   - [Run pipeline](#run-pipeline)
-  - [Show pipeline](#show-pipeline)
+  - [Show pipeline status](#show-pipeline-status)
 - [Frequently asked questions](#frequently-asked-questions)
   - [How is script execution order determined?](#how-is-script-execution-order-determined)
   - [Are outputs cached?](#are-outputs-cached)
@@ -119,12 +119,12 @@ To run the pipeline, use `bakepipe::run()`. This will execute all scripts in the
 bakepipe::run()
 ```
 
-### Show pipeline
+### Show pipeline status
 
-To show the pipeline, use `bakepipe::show()`. This will display a textual representation of the input/output relationships between your files in the console, helping you visualize your workflow.
+To show the pipeline, use `bakepipe::status()`. This will display a textual representation of the input/output relationships between your files in the console, helping you visualize your workflow.
 
 ```r
-bakepipe::show()
+bakepipe::status()
 ```
 
 ## Frequently asked questions
