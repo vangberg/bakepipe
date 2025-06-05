@@ -17,12 +17,14 @@ The project is currently in early development phase (described as "vaporware" in
 
 ## Development Status
 
-This repository currently contains only a README.md file. When implementing the actual R package, it should follow standard R package structure:
-- DESCRIPTION file for package metadata
-- NAMESPACE file for exports
-- R/ directory for function implementations
-- man/ directory for documentation
-- tests/ directory for unit tests
+This repository contains a working R package with basic functionality implemented. See DEVELOPMENT.md for detailed development setup, testing, and build instructions.
+
+## Development Workflow
+
+When implementing new features:
+1. Write tests first that describe the expected behavior
+2. Wait for user approval of the test before proceeding
+3. Only after test is accepted, implement the actual functionality
 
 ## Key Features to Implement
 
