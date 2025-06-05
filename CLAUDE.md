@@ -22,7 +22,7 @@ This repository contains a working R package with basic functionality implemente
 ## Development Workflow
 
 When implementing new features:
-1. Write tests first that describe the expected behavior
+1. WRITE TESTS FIRST THAT DESCRIBE THE EXPECTED BEHAVIOR
 2. Wait for user approval of the test before proceeding
 3. Only after test is accepted, implement the actual functionality
 
@@ -32,3 +32,7 @@ When implementing new features:
 - Topological sorting to determine script execution order
 - Pipeline execution with proper error handling
 - Pipeline visualization and status reporting
+
+## Testing Principles
+
+- Avoid mocks in tests when possible
