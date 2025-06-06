@@ -2,5 +2,11 @@
 
 export(file_in)
 export(file_out)
+export(find_descendants)
+export(graph)
+export(root)
 export(run)
+export(scripts)
 export(status)
+export(topological_sort)
+importFrom(stats,setNames)
