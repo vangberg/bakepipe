@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Pre-commit hook for bakepipe R package
+# Automatically generates documentation using devtools::document()
+
+echo "Pre-commit hook: Generating R documentation..."
+
+# Check if R is available
+if ! command -v R &> /dev/null; then
+    echo "Error: R is not available in PATH"
+    exit 1
+fi
+
+# Check if devtools is available
+R --slave --no-restore --file=- <<< "
+if (!requireNamespace('devtools', quietly = TRUE)) {
+    cat('Error: devtools package is not installed\n')
+    quit(status = 1)
+}
+"
+
+if [ $? -ne 0 ]; then
+    echo "Error: devtools package is required but not installed"
+    echo "Install with: install.packages('devtools')"
+    exit 1
+fi
+
+# Generate documentation
+echo "Running devtools::document()..."
+R --slave --no-restore --file=- <<< "
+devtools::document()
+cat('Documentation generated successfully\n')
+"
+
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to generate documentation"
+    exit 1
+fi
+
+# Check if any documentation files were modified
+if git diff --cached --name-only | grep -E '^(man/|NAMESPACE)' > /dev/null; then
+    echo "Documentation files were already staged for commit"
+else
+    # Check if documentation files were modified by devtools::document()
+    if git diff --name-only | grep -E '^(man/|NAMESPACE)' > /dev/null; then
+        echo "Documentation files were updated. Adding them to the commit..."
+        git add man/ NAMESPACE
+        echo "Documentation files added to commit"
+    else
+        echo "No documentation changes detected"
+    fi
+fi
+
+echo "Pre-commit hook completed successfully"
+exit 0

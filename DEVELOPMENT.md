@@ -122,3 +122,27 @@ devtools::document()
 ```
 
 This updates the NAMESPACE file and generates man pages from roxygen2 comments.
+
+### Pre-commit Hook for Automatic Documentation
+
+A pre-commit hook is available to automatically generate documentation before each commit. To install it:
+
+```bash
+cp hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+The hook will:
+1. Run `devtools::document()` to update documentation
+2. Automatically stage any updated `man/` files and `NAMESPACE` 
+3. Ensure documentation stays in sync with code changes
+
+The hook will prevent commits if:
+- R is not available in PATH
+- The `devtools` package is not installed
+- Documentation generation fails
+
+To bypass the hook in exceptional cases:
+```bash
+git commit --no-verify
+```
