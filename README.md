@@ -33,8 +33,9 @@ Bakepipe is currently vaporware and cannot be installed. Check back soon!
 
 ### Your First Pipeline
 
-1.  **Mark file relationships:** In your R scripts, use `file_in()` and `file_out()` to specify input and output files.
-2.  **Run:** From your R console or RStudio, simply call `bakepipe::run()`.
+1.  **Create project root marker:** Create an empty `_bakepipe.R` file in your project root directory.
+2.  **Mark file relationships:** In your R scripts, use `file_in()` and `file_out()` to specify input and output files.
+3.  **Run:** From your R console or RStudio, simply call `bakepipe::run()`.
 
 Bakepipe will detect these file relationships and execute all your scripts in the correct order.
 
