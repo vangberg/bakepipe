@@ -2,3 +2,6 @@ url: https://vangberg.github.io/bakepipe/
 template:
   bootstrap: 5
 
+authors:
+  Harry Vangberg:
+    href: https://harry.vangberg.name
