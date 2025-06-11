@@ -2,13 +2,17 @@
 #'
 #' Builds a Directed Acyclic Graph (DAG) representing the dependencies between
 #' scripts and data files. The graph is represented using an edges data frame.
+#' Optionally accepts a cache object to mark stale nodes.
 #'
 #' @param parse_data Named list from parse() function, where each element
 #'   represents a script with 'inputs' and 'outputs' character vectors.
+#' @param cache_obj Optional cache object from cache() function to determine
+#'   which nodes are stale.
 #' @return List containing:
 #'   \itemize{
 #'     \item{nodes: Character vector of all nodes (scripts and artifacts)}
 #'     \item{edges: Data frame with 'from' and 'to' columns representing edges}
+#'     \item{stale_nodes: Character vector of nodes marked as stale (if cache_obj provided)}
 #'   }
 #' @importFrom stats setNames
 #' @export
@@ -17,13 +21,21 @@
 #' # Parse scripts and create dependency graph
 #' parsed <- parse()
 #' graph_obj <- graph(parsed)
+#' 
+#' # Create graph with cache information
+#' cache_obj <- cache()
+#' graph_obj <- graph(parsed, cache_obj)
 #' }
-graph <- function(parse_data) {
+graph <- function(parse_data, cache_obj = NULL) {
   if (length(parse_data) == 0) {
-    return(list(
+    result <- list(
       nodes = character(0),
       edges = data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
-    ))
+    )
+    if (!is.null(cache_obj)) {
+      result$stale_nodes <- character(0)
+    }
+    return(result)
   }
   
   # Validate single producer per artifact
@@ -43,6 +55,11 @@ graph <- function(parse_data) {
   
   # Detect cycles
   detect_cycles(graph_obj)
+  
+  # Add stale node information if cache is provided
+  if (!is.null(cache_obj)) {
+    graph_obj$stale_nodes <- determine_stale_nodes(graph_obj, cache_obj, parse_data)
+  }
   
   return(graph_obj)
 }
@@ -266,4 +283,82 @@ find_descendants <- function(graph_obj, node) {
   }
 
   sort(unique(visited))
+}
+
+#' Determine which nodes are stale based on cache information
+#'
+#' Implements the stale marking logic:
+#' - If a script is stale, mark it and all descendants as stale
+#' - If an artifact is stale (manually modified), mark its parent script and all descendants as stale
+#'
+#' @param graph_obj Graph object with nodes and edges
+#' @param cache_obj Cache object from cache() function
+#' @param parse_data Parsed script data to identify script-artifact relationships
+#' @return Character vector of stale node names
+#' @keywords internal
+determine_stale_nodes <- function(graph_obj, cache_obj, parse_data) {
+  stale_nodes <- character(0)
+  
+  # Get all nodes that are directly marked as stale in cache
+  directly_stale <- names(cache_obj)[sapply(cache_obj, function(x) x$status == "stale")]
+  
+  # Also check for missing output files that should exist but aren't in cache
+  all_outputs <- character(0)
+  for (script_data in parse_data) {
+    all_outputs <- c(all_outputs, script_data$outputs)
+  }
+  all_outputs <- unique(all_outputs)
+  
+  # Missing output files are implicitly stale
+  missing_outputs <- all_outputs[!file.exists(all_outputs)]
+  missing_stale <- missing_outputs[!missing_outputs %in% names(cache_obj)]
+  
+  # Combine directly stale and missing files
+  all_stale <- unique(c(directly_stale, missing_stale))
+  
+  for (stale_node in all_stale) {
+    if (stale_node %in% graph_obj$nodes) {
+      # Check if this is a script or artifact
+      if (stale_node %in% names(parse_data)) {
+        # It's a script - mark it and all descendants as stale
+        stale_nodes <- c(stale_nodes, stale_node)
+        descendants <- find_descendants(graph_obj, stale_node)
+        stale_nodes <- c(stale_nodes, descendants)
+      } else {
+        # It's an artifact - find its parent script and mark parent + descendants as stale
+        parent_script <- find_parent_script(stale_node, parse_data)
+        
+        # Mark the artifact itself as stale
+        stale_nodes <- c(stale_nodes, stale_node)
+        
+        # Mark parent script (if exists) and all descendants as stale
+        if (!is.null(parent_script) && parent_script %in% graph_obj$nodes) {
+          stale_nodes <- c(stale_nodes, parent_script)
+          parent_descendants <- find_descendants(graph_obj, parent_script)
+          stale_nodes <- c(stale_nodes, parent_descendants)
+        }
+        
+        # Also mark direct descendants of the artifact as stale
+        artifact_descendants <- find_descendants(graph_obj, stale_node)
+        stale_nodes <- c(stale_nodes, artifact_descendants)
+      }
+    }
+  }
+  
+  unique(stale_nodes)
+}
+
+#' Find the parent script that produces a given artifact
+#'
+#' @param artifact_name Name of the artifact file
+#' @param parse_data Parsed script data
+#' @return Script name that produces the artifact, or NULL if not found
+#' @keywords internal
+find_parent_script <- function(artifact_name, parse_data) {
+  for (script_name in names(parse_data)) {
+    if (artifact_name %in% parse_data[[script_name]]$outputs) {
+      return(script_name)
+    }
+  }
+  NULL
 }

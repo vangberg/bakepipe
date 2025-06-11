@@ -4,10 +4,12 @@
 \alias{display_artifacts_table}
 \title{Display the artifacts table}
 \usage{
-display_artifacts_table(pipeline_data)
+display_artifacts_table(pipeline_data, cache_obj = NULL)
 }
 \arguments{
 \item{pipeline_data}{Parsed pipeline data}
+
+\item{cache_obj}{Cache object for stale/fresh status}
 }
 \description{
 Display the artifacts table

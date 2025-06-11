@@ -10,5 +10,6 @@ run()
 Character vector of files that were created or updated
 }
 \description{
-Execute all scripts in the pipeline graph in topological order
+Execute all scripts in the pipeline graph in topological order.
+With incremental builds, only stale scripts are executed.
 }

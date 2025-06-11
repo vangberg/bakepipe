@@ -4,10 +4,12 @@
 \alias{display_scripts_table}
 \title{Display the scripts table}
 \usage{
-display_scripts_table(pipeline_data)
+display_scripts_table(pipeline_data, cache_obj = NULL)
 }
 \arguments{
 \item{pipeline_data}{Parsed pipeline data}
+
+\item{cache_obj}{Cache object for stale/fresh status}
 }
 \description{
 Display the scripts table

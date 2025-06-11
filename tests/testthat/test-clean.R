@@ -182,3 +182,65 @@ writeLines("overwritten", file_out("shared.txt"))
   expect_true("output1.txt" %in% result)
   expect_true("shared.txt" %in% result)
 })
+
+test_that("clean() removes incremental build cache file", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+
+  writeLines("data,value\nA,1\nB,2", "input.csv")
+
+  writeLines('
+library(bakepipe)
+data <- read.csv(file_in("input.csv"))
+write.csv(data, file_out("output.csv"), row.names = FALSE)
+', "process.R")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, "input.csv"),
+             file.path(temp_dir, "process.R"),
+             file.path(temp_dir, "output.csv"),
+             file.path(temp_dir, ".bakepipe_cache.csv")))
+  })
+
+  # Run pipeline to create cache file
+  run()
+  expect_true(file.exists(".bakepipe_cache.csv"))
+
+  # Clean should remove cache file
+  result <- clean()
+  expect_false(file.exists(".bakepipe_cache.csv"))
+  expect_true(".bakepipe_cache.csv" %in% result)
+
+  # After clean, next run should execute all scripts (cache reset)
+  result2 <- run()
+  expect_true("output.csv" %in% result2)
+})
+
+test_that("clean() removes only cache file when no scripts exist", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+
+  # Create a cache file manually
+  writeLines("file,checksum,last_modified,status\ntest.R,abc123,2023-01-01,fresh", ".bakepipe_cache.csv")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, ".bakepipe_cache.csv")))
+  })
+
+  expect_true(file.exists(".bakepipe_cache.csv"))
+
+  # Clean with no scripts should still remove cache file
+  result <- clean()
+  expect_false(file.exists(".bakepipe_cache.csv"))
+  expect_equal(result, ".bakepipe_cache.csv")
+})

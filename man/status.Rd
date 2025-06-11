@@ -8,5 +8,6 @@ status()
 }
 \description{
 Display a textual representation of the input/output relationships
-between files and artifacts in the console
+between files and artifacts in the console, including Fresh/Stale status
+for incremental builds.
 }

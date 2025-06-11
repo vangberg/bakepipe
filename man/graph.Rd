@@ -4,27 +4,36 @@
 \alias{graph}
 \title{Create dependency graph from parsed script data}
 \usage{
-graph(parse_data)
+graph(parse_data, cache_obj = NULL)
 }
 \arguments{
 \item{parse_data}{Named list from parse() function, where each element
 represents a script with 'inputs' and 'outputs' character vectors.}
+
+\item{cache_obj}{Optional cache object from cache() function to determine
+which nodes are stale.}
 }
 \value{
 List containing:
 \itemize{
 \item{nodes: Character vector of all nodes (scripts and artifacts)}
 \item{edges: Data frame with 'from' and 'to' columns representing edges}
+\item{stale_nodes: Character vector of nodes marked as stale (if cache_obj provided)}
 }
 }
 \description{
 Builds a Directed Acyclic Graph (DAG) representing the dependencies between
 scripts and data files. The graph is represented using an edges data frame.
+Optionally accepts a cache object to mark stale nodes.
 }
 \examples{
 \dontrun{
 # Parse scripts and create dependency graph
 parsed <- parse()
 graph_obj <- graph(parsed)
+
+# Create graph with cache information
+cache_obj <- cache()
+graph_obj <- graph(parsed, cache_obj)
 }
 }
