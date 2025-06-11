@@ -16,3 +16,4 @@ docs
 
 # Claude Code files
 .claude
+.bakepipe.state
