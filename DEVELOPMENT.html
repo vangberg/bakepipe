@@ -144,6 +144,16 @@
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">document</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>This updates the NAMESPACE file and generates man pages from roxygen2 comments.</p>
+<div class="section level3">
+<h3 id="pre-commit-hook-for-automatic-documentation">Pre-commit Hook for Automatic Documentation<a class="anchor" aria-label="anchor" href="#pre-commit-hook-for-automatic-documentation"></a></h3>
+<p>A pre-commit hook is available to automatically generate documentation before each commit. To install it:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">cp</span> hooks/pre-commit .git/hooks/pre-commit</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">chmod</span> +x .git/hooks/pre-commit</span></code></pre></div>
+<p>The hook will: 1. Run <code>devtools::document()</code> to update documentation 2. Automatically stage any updated <code>man/</code> files and <code>NAMESPACE</code> 3. Ensure documentation stays in sync with code changes</p>
+<p>The hook will prevent commits if: - R is not available in PATH - The <code>devtools</code> package is not installed - Documentation generation fails</p>
+<p>To bypass the hook in exceptional cases:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">--no-verify</span></span></code></pre></div>
+</div>
 </div>
 </div>
 
