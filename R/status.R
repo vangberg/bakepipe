@@ -34,13 +34,19 @@ status <- function() {
 #' Display the scripts table
 #' @param pipeline_data Parsed pipeline data
 display_scripts_table <- function(pipeline_data) {
+  # Create graph and get topological order
+  graph_obj <- graph(pipeline_data)
+  topo_order <- topological_sort(graph_obj)
+  
+  # Filter to get only scripts in topological order
+  scripts <- intersect(topo_order, names(pipeline_data))
+  
   # Prepare data for table display
-  scripts <- names(pipeline_data)
-  inputs_list <- lapply(pipeline_data, function(x) {
-    paste(x$inputs, collapse = ", ")
+  inputs_list <- lapply(scripts, function(script) {
+    paste(pipeline_data[[script]]$inputs, collapse = ", ")
   })
-  outputs_list <- lapply(pipeline_data, function(x) {
-    paste(x$outputs, collapse = ", ")
+  outputs_list <- lapply(scripts, function(script) {
+    paste(pipeline_data[[script]]$outputs, collapse = ", ")
   })
 
   # Convert to character vectors
@@ -86,6 +92,10 @@ display_scripts_table <- function(pipeline_data) {
 #' Display the artifacts table
 #' @param pipeline_data Parsed pipeline data
 display_artifacts_table <- function(pipeline_data) {
+  # Create graph and get topological order
+  graph_obj <- graph(pipeline_data)
+  topo_order <- topological_sort(graph_obj)
+  
   # Collect all unique artifacts from inputs and outputs
   all_artifacts <- character(0)
   
@@ -93,8 +103,8 @@ display_artifacts_table <- function(pipeline_data) {
     all_artifacts <- c(all_artifacts, script_data$inputs, script_data$outputs)
   }
   
-  # Get unique artifacts
-  unique_artifacts <- unique(all_artifacts)
+  # Get unique artifacts in topological order
+  unique_artifacts <- intersect(topo_order, unique(all_artifacts))
   
   if (length(unique_artifacts) == 0) {
     cat("(No artifacts found)\n")
@@ -117,37 +127,34 @@ display_artifacts_table <- function(pipeline_data) {
     stringsAsFactors = FALSE
   )
   
-  # Sort by artifact name for consistent display
-  artifacts_df <- artifacts_df[order(artifacts_df$Artifact), ]
-  
   # Calculate column widths
   col_widths <- c(
     max(nchar(artifacts_df$Artifact), nchar("File")),
     max(nchar(artifacts_df$Status), nchar("Status"))
   )
-  
+
   # Print header
   cat(sprintf("%-*s | %-*s\n",
               col_widths[1], "File",
               col_widths[2], "Status"))
-  
+
   # Print separator line with proper alignment
   cat(sprintf("%s-+-%s\n",
               paste(rep("-", col_widths[1]), collapse = ""),
               paste(rep("-", col_widths[2]), collapse = "")))
-  
+
   # Print each row
   for (i in seq_len(nrow(artifacts_df))) {
     cat(sprintf("%-*s | %-*s\n",
                 col_widths[1], artifacts_df$Artifact[i],
                 col_widths[2], artifacts_df$Status[i]))
   }
-  
+
   # Add summary
   present_count <- sum(grepl("Present", artifacts_df$Status))
   missing_count <- sum(grepl("Missing", artifacts_df$Status))
   total_count <- nrow(artifacts_df)
-  
-  cat(sprintf("\n%d files total: %d present, %d missing\n", 
+
+  cat(sprintf("\n%d files total: %d present, %d missing\n",
               total_count, present_count, missing_count))
 }

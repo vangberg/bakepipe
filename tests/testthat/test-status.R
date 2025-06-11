@@ -321,3 +321,74 @@ write.csv(data, file_out("result.csv"))
   setwd(old_wd)
   unlink(project_dir, recursive = TRUE)
 })
+
+test_that("status() displays scripts and artifacts in topological order", {
+  # Create a temporary directory structure
+  temp_dir <- tempfile()
+  old_wd <- getwd()
+  
+  # Setup: Create a temporary project directory
+  project_dir <- temp_dir
+  dir.create(project_dir, recursive = TRUE)
+  
+  # Create _bakepipe.R in the project root
+  bakepipe_file <- file.path(project_dir, "_bakepipe.R")
+  file.create(bakepipe_file)
+  
+  # Create scripts in a dependency chain: c.R -> b.R -> a.R
+  # (named to ensure alphabetical order differs from topological order)
+  script_a <- file.path(project_dir, "a_final.R")
+  cat('
+intermediate <- read.csv(file_in("step2.csv"))
+final_result <- finalize(intermediate)
+write.csv(final_result, file_out("final.csv"))
+', file = script_a)
+  
+  script_b <- file.path(project_dir, "b_middle.R")
+  cat('
+processed <- read.csv(file_in("step1.csv"))
+intermediate <- process_further(processed)
+write.csv(intermediate, file_out("step2.csv"))
+', file = script_b)
+  
+  script_c <- file.path(project_dir, "c_first.R")
+  cat('
+raw <- read.csv(file_in("raw.csv"))
+processed <- initial_process(raw)
+write.csv(processed, file_out("step1.csv"))
+', file = script_c)
+  
+  # Change to project directory
+  setwd(project_dir)
+  
+  # Test: status() should display scripts in topological order
+  output <- capture.output(status())
+  
+  # Find line numbers where scripts appear
+  c_line <- which(grepl("c_first.R", output))[1]
+  b_line <- which(grepl("b_middle.R", output))[1]
+  a_line <- which(grepl("a_final.R", output))[1]
+  
+  # Scripts should appear in topological order: c_first.R, b_middle.R, a_final.R
+  expect_true(c_line < b_line)
+  expect_true(b_line < a_line)
+  
+  # Find the Artifacts section start
+  artifacts_start <- which(grepl("Artifacts:", output))[1]
+
+  # Find artifacts in the artifacts section only
+  artifacts_lines <- output[(artifacts_start + 1):length(output)]
+  raw_line <- which(grepl("raw.csv", artifacts_lines))[1] + artifacts_start
+  step1_line <- which(grepl("step1.csv", artifacts_lines))[1] + artifacts_start
+  step2_line <- which(grepl("step2.csv", artifacts_lines))[1] + artifacts_start
+  final_line <- which(grepl("final.csv", artifacts_lines))[1] + artifacts_start
+
+  # Artifacts should appear in dependency order
+  expect_true(raw_line < step1_line)
+  expect_true(step1_line < step2_line)
+  expect_true(step2_line < final_line)
+  
+  # Cleanup
+  setwd(old_wd)
+  unlink(project_dir, recursive = TRUE)
+})
