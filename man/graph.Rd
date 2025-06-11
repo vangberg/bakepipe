@@ -10,7 +10,7 @@ graph(parse_data, cache_obj = NULL)
 \item{parse_data}{Named list from parse() function, where each element
 represents a script with 'inputs' and 'outputs' character vectors.}
 
-\item{cache_obj}{Optional cache object from cache() function to determine
+\item{cache_obj}{Optional state object from read_state() function to determine
 which nodes are stale.}
 }
 \value{
@@ -32,8 +32,8 @@ Optionally accepts a cache object to mark stale nodes.
 parsed <- parse()
 graph_obj <- graph(parsed)
 
-# Create graph with cache information
-cache_obj <- cache()
-graph_obj <- graph(parsed, cache_obj)
+# Create graph with state information
+state_obj <- read_state()
+graph_obj <- graph(parsed, state_obj)
 }
 }

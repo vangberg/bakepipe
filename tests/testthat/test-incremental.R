@@ -1,4 +1,4 @@
-test_that("cache() creates and reads cache file with checksums", {
+test_that("read_state() creates and reads state file with checksums", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -19,18 +19,18 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
              file.path(temp_dir, "input.csv"),
              file.path(temp_dir, "process.R"),
              file.path(temp_dir, "output.csv"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
-  # First cache call should not create cache file (only read_cache)
-  cache_obj <- cache()
+  # First cache call should not create cache file (only read_state)
+  cache_obj <- read_state()
 
-  # Cache file doesn't exist yet - will be created by write_cache
-  expect_false(file.exists(".bakepipe_cache.csv"))
+  # Cache file doesn't exist yet - will be created by write_state
+  expect_false(file.exists(".bakepipe.state"))
   
   # Run pipeline to create cache file
   run()
-  expect_true(file.exists(".bakepipe_cache.csv"))
+  expect_true(file.exists(".bakepipe.state"))
   expect_type(cache_obj, "list")
   expect_true("process.R" %in% names(cache_obj))
   expect_true("input.csv" %in% names(cache_obj))
@@ -45,7 +45,7 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   expect_equal(cache_obj$"input.csv"$status, "stale")
 })
 
-test_that("cache() detects when script content changes", {
+test_that("read_state() detects when script content changes", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -67,18 +67,18 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
              file.path(temp_dir, "input.csv"),
              file.path(temp_dir, "process.R"),
              file.path(temp_dir, "output.csv"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
   # First cache - all stale
-  cache_obj1 <- cache()
+  cache_obj1 <- read_state()
   expect_equal(cache_obj1$"process.R"$status, "stale")
 
   # Simulate running pipeline - mark as fresh
-  write_cache(c("process.R"))
+  write_state(parse())
 
   # Second cache - should be fresh since no changes
-  cache_obj2 <- cache()
+  cache_obj2 <- read_state()
   expect_equal(cache_obj2$"process.R"$status, "fresh")
 
   # Modify script content
@@ -91,11 +91,11 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   writeLines(modified_script, "process.R")
 
   # Third cache - should detect change and mark as stale
-  cache_obj3 <- cache()
+  cache_obj3 <- read_state()
   expect_equal(cache_obj3$"process.R"$status, "stale")
 })
 
-test_that("cache() detects when artifact is manually modified", {
+test_that("read_state() detects when artifact is manually modified", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -118,22 +118,22 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
              file.path(temp_dir, "input.csv"),
              file.path(temp_dir, "process.R"),
              file.path(temp_dir, "output.csv"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
   # First cache and mark as fresh
-  cache_obj1 <- cache()
-  write_cache(c("process.R"))
+  cache_obj1 <- read_state()
+  write_state(c("process.R"))
 
   # Second cache - should be fresh
-  cache_obj2 <- cache()
+  cache_obj2 <- read_state()
   expect_equal(cache_obj2$"output.csv"$status, "fresh")
 
   # Manually modify output file
   writeLines("data,value\nA,1\nB,2\nC,3", "output.csv")
 
   # Third cache - should detect artifact change
-  cache_obj3 <- cache()
+  cache_obj3 <- read_state()
   expect_equal(cache_obj3$"output.csv"$status, "stale")
 })
 
@@ -167,7 +167,7 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
              file.path(temp_dir, "script2.R"),
              file.path(temp_dir, "file.csv"),
              file.path(temp_dir, "final.csv"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
   # Run pipeline first time to create all files
@@ -175,7 +175,7 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
 
   # Get fresh cache state after run
   pipeline_data <- parse()
-  cache_obj <- cache()
+  cache_obj <- read_state()
   graph_obj <- graph(pipeline_data, cache_obj)
 
   # Verify all are fresh initially (after running)
@@ -187,7 +187,7 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
   writeLines("data,value\nA,1\nB,2\nC,3", "file.csv")
 
   # Re-create graph with updated cache
-  cache_obj2 <- cache()
+  cache_obj2 <- read_state()
   graph_obj2 <- graph(pipeline_data, cache_obj2)
 
   # Should mark script1.R (parent), file.csv (modified artifact), and script2.R + final.csv (descendants) as stale
@@ -227,11 +227,11 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
              file.path(temp_dir, "step2.R"),
              file.path(temp_dir, "intermediate.csv"),
              file.path(temp_dir, "final.csv"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
   pipeline_data <- parse()
-  cache_obj <- cache()
+  cache_obj <- read_state()
 
   # Create graph with cache - should mark stale nodes
   graph_obj <- graph(pipeline_data, cache_obj)
@@ -293,7 +293,7 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
              file.path(temp_dir, "final.csv"),
              file.path(temp_dir, "step1.log"),
              file.path(temp_dir, "step2.log"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
   # First run - should execute all scripts
@@ -349,7 +349,7 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
              file.path(temp_dir, "input.csv"),
              file.path(temp_dir, "process.R"),
              file.path(temp_dir, "output.csv"),
-             file.path(temp_dir, ".bakepipe_cache.csv")))
+             file.path(temp_dir, ".bakepipe.state")))
   })
 
   # Capture status output

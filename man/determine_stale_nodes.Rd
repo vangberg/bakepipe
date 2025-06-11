@@ -9,7 +9,7 @@ determine_stale_nodes(graph_obj, cache_obj, parse_data)
 \arguments{
 \item{graph_obj}{Graph object with nodes and edges}
 
-\item{cache_obj}{Cache object from cache() function}
+\item{cache_obj}{State object from read_state() function}
 
 \item{parse_data}{Parsed script data to identify script-artifact relationships}
 }

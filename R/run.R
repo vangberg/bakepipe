@@ -14,8 +14,8 @@ run <- function() {
     return(character(0))
   }
 
-  # Get cache information
-  cache_obj <- read_cache()
+  # Get state information
+  cache_obj <- read_state()
 
   # Create dependency graph with cache information
   graph_obj <- graph(pipeline_data, cache_obj)
@@ -78,9 +78,9 @@ run <- function() {
     }
   }
 
-  # Update cache to mark executed scripts as fresh
+  # Update state to mark executed scripts as fresh
   if (length(scripts_to_run) > 0) {
-    write_cache(scripts_to_run)
+    write_state(pipeline_data)
   }
 
   # Return unique list of created files

@@ -15,8 +15,8 @@ status <- function() {
     return(invisible(NULL))
   }
 
-  # Get cache information for stale/fresh status
-  cache_obj <- read_cache()
+  # Get state information for stale/fresh status
+  cache_obj <- read_state()
 
   # Display header
   cat("Pipeline Status\n")

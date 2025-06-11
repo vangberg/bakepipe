@@ -6,7 +6,7 @@
 #'
 #' @param parse_data Named list from parse() function, where each element
 #'   represents a script with 'inputs' and 'outputs' character vectors.
-#' @param cache_obj Optional cache object from cache() function to determine
+#' @param cache_obj Optional state object from read_state() function to determine
 #'   which nodes are stale.
 #' @return List containing:
 #'   \itemize{
@@ -22,9 +22,9 @@
 #' parsed <- parse()
 #' graph_obj <- graph(parsed)
 #' 
-#' # Create graph with cache information
-#' cache_obj <- cache()
-#' graph_obj <- graph(parsed, cache_obj)
+#' # Create graph with state information
+#' state_obj <- read_state()
+#' graph_obj <- graph(parsed, state_obj)
 #' }
 graph <- function(parse_data, cache_obj = NULL) {
   if (length(parse_data) == 0) {
@@ -292,7 +292,7 @@ find_descendants <- function(graph_obj, node) {
 #' - If an artifact is stale (manually modified), mark its parent script and all descendants as stale
 #'
 #' @param graph_obj Graph object with nodes and edges
-#' @param cache_obj Cache object from cache() function
+#' @param cache_obj State object from read_state() function
 #' @param parse_data Parsed script data to identify script-artifact relationships
 #' @return Character vector of stale node names
 #' @keywords internal
