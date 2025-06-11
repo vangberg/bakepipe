@@ -7,7 +7,6 @@
 status()
 }
 \description{
-Display a textual representation of the input/output relationships
-between files and artifacts in the console, including Fresh/Stale status
-for incremental builds.
+Display a tree-style representation of the pipeline showing inputs,
+scripts, and their outputs with Fresh/Stale status for incremental builds.
 }
