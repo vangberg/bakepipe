@@ -114,7 +114,7 @@ write.csv(data, bakepipe::file_out("data.csv"))
 
 ### Run pipeline
 
-To run the pipeline, use `bakepipe::run()`. This will execute all scripts in the pipeline graph in their determined topological order, and return a list of the files that were created or updated. If a script fails, Bakepipe stops execution and provides R's standard error messages, allowing for easy debugging.
+To run the pipeline, use `bakepipe::run()`. This will execute scripts in the pipeline graph in their determined topological order, and return a list of the files that were created or updated. Bakepipe uses caching to only re-run scripts whose inputs have changed since their last execution, speeding up repeated pipeline runs. If a script fails, Bakepipe stops execution and provides R's standard error messages, allowing for easy debugging.
 
 ```r
 bakepipe::run()
@@ -134,9 +134,6 @@ bakepipe::status()
 
 Bakepipe determines the correct execution order through static analysis of your R scripts, looking for `file_in` and `file_out` calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don't need to refactor your scripts into functions or drastically change your script structure beyond adding the `file_in()` and `file_out()` calls.
 
-### Are outputs cached?
-
-Currently, Bakepipe does not perform any caching or checks to determine if a script needs to be re-run. When `bakepipe::run()` is called, all scripts in the pipeline graph are executed in their determined topological order every time. While this ensures reproducibility by always running the full analysis, it means computational steps are not skipped if inputs haven't changed. Caching and conditional execution based on file checks are planned features for future releases.
 
 ### How does Bakepipe compare to other pipeline tools?
 
