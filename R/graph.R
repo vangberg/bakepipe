@@ -1,8 +1,7 @@
 #' Create dependency graph from parsed script data
 #'
 #' Builds a Directed Acyclic Graph (DAG) representing the dependencies between
-#' scripts and data files. The graph is represented using an adjacency list for
-#' efficient traversal operations.
+#' scripts and data files. The graph is represented using an edges data frame.
 #'
 #' @param parse_data Named list from parse() function, where each element
 #'   represents a script with 'inputs' and 'outputs' character vectors.
@@ -10,7 +9,6 @@
 #'   \itemize{
 #'     \item{nodes: Character vector of all nodes (scripts and artifacts)}
 #'     \item{edges: Data frame with 'from' and 'to' columns representing edges}
-#'     \item{adjacency_list: Named list where each element contains downstream neighbors}
 #'   }
 #' @importFrom stats setNames
 #' @export
@@ -24,8 +22,7 @@ graph <- function(parse_data) {
   if (length(parse_data) == 0) {
     return(list(
       nodes = character(0),
-      edges = data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE),
-      adjacency_list = list()
+      edges = data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
     ))
   }
   
@@ -35,14 +32,13 @@ graph <- function(parse_data) {
   # Collect all nodes (scripts and artifacts)
   nodes <- collect_all_nodes(parse_data)
   
-  # Build edges and adjacency list
-  edge_result <- build_edges_and_adjacency(parse_data, nodes)
+  # Build edges
+  edges <- build_edges(parse_data)
   
   # Create graph object
   graph_obj <- list(
     nodes = nodes,
-    edges = edge_result$edges,
-    adjacency_list = edge_result$adjacency_list
+    edges = edges
   )
   
   # Detect cycles
@@ -91,20 +87,13 @@ collect_all_nodes <- function(parse_data) {
   unique(nodes)
 }
 
-#' Build edges and adjacency list from parse data
+#' Build edges from parse data
 #'
 #' @param parse_data Named list from parse() function
-#' @param nodes Character vector of all nodes
-#' @return List with 'edges' data frame and 'adjacency_list'
+#' @return Data frame with 'from' and 'to' columns representing edges
 #' @keywords internal
-build_edges_and_adjacency <- function(parse_data, nodes) {
+build_edges <- function(parse_data) {
   edges <- data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
-  adjacency_list <- setNames(vector("list", length(nodes)), nodes)
-  
-  # Initialize empty lists for all nodes
-  for (node in nodes) {
-    adjacency_list[[node]] <- character(0)
-  }
   
   # Build edges: artifact -> script (inputs) and script -> artifact (outputs)
   for (script_name in names(parse_data)) {
@@ -113,22 +102,15 @@ build_edges_and_adjacency <- function(parse_data, nodes) {
     # Edges from input artifacts to script
     for (input in script_data$inputs) {
       edges <- rbind(edges, data.frame(from = input, to = script_name, stringsAsFactors = FALSE))
-      adjacency_list[[input]] <- c(adjacency_list[[input]], script_name)
     }
     
     # Edges from script to output artifacts
     for (output in script_data$outputs) {
       edges <- rbind(edges, data.frame(from = script_name, to = output, stringsAsFactors = FALSE))
-      adjacency_list[[script_name]] <- c(adjacency_list[[script_name]], output)
     }
   }
   
-  # Remove duplicates and sort adjacency lists
-  for (node in names(adjacency_list)) {
-    adjacency_list[[node]] <- sort(unique(adjacency_list[[node]]))
-  }
-  
-  list(edges = edges, adjacency_list = adjacency_list)
+  edges
 }
 
 #' Detect cycles in the dependency graph using DFS
@@ -137,35 +119,40 @@ build_edges_and_adjacency <- function(parse_data, nodes) {
 #' @keywords internal
 detect_cycles <- function(graph_obj) {
   nodes <- graph_obj$nodes
-  adj_list <- graph_obj$adjacency_list
-  
+  edges <- graph_obj$edges
+
   # DFS state: 0 = unvisited, 1 = visiting, 2 = visited
   state <- setNames(rep(0, length(nodes)), nodes)
-  
+
+  # Get neighbors from edges
+  get_neighbors <- function(node) {
+    edges$to[edges$from == node]
+  }
+
   # Recursive DFS function
   dfs <- function(node) {
     if (state[node] == 1) {
       # Back edge found - cycle detected
       stop("Cycle detected in dependency graph involving node: ", node)
     }
-    
+
     if (state[node] == 2) {
       # Already processed
       return()
     }
-    
+
     # Mark as visiting
     state[node] <<- 1
-    
+
     # Visit all neighbors
-    for (neighbor in adj_list[[node]]) {
+    for (neighbor in get_neighbors(node)) {
       dfs(neighbor)
     }
-    
+
     # Mark as visited
     state[node] <<- 2
   }
-  
+
   # Run DFS from all unvisited nodes
   for (node in nodes) {
     if (state[node] == 0) {
@@ -190,44 +177,48 @@ detect_cycles <- function(graph_obj) {
 #' }
 topological_sort <- function(graph_obj) {
   nodes <- graph_obj$nodes
-  adj_list <- graph_obj$adjacency_list
-  
+  edges <- graph_obj$edges
+
   if (length(nodes) == 0) {
     return(character(0))
   }
-  
+
   # Calculate in-degree for each node
   in_degree <- setNames(rep(0, length(nodes)), nodes)
-  for (node in nodes) {
-    for (neighbor in adj_list[[node]]) {
-      in_degree[neighbor] <- in_degree[neighbor] + 1
-    }
+  for (i in seq_len(nrow(edges))) {
+    to_node <- edges$to[i]
+    in_degree[to_node] <- in_degree[to_node] + 1
   }
-  
+
+  # Get neighbors from edges
+  get_neighbors <- function(node) {
+    edges$to[edges$from == node]
+  }
+
   # Initialize queue with nodes that have no incoming edges
   queue <- names(in_degree)[in_degree == 0]
   result <- character(0)
-  
+
   while (length(queue) > 0) {
     # Remove node with no incoming edges
     current <- queue[1]
     queue <- queue[-1]
     result <- c(result, current)
-    
+
     # Remove edges from current node
-    for (neighbor in adj_list[[current]]) {
+    for (neighbor in get_neighbors(current)) {
       in_degree[neighbor] <- in_degree[neighbor] - 1
       if (in_degree[neighbor] == 0) {
         queue <- c(queue, neighbor)
       }
     }
   }
-  
+
   # If result doesn't contain all nodes, there was a cycle
   if (length(result) != length(nodes)) {
     stop("Cannot perform topological sort: graph contains cycles")
   }
-  
+
   result
 }
 
@@ -248,25 +239,31 @@ topological_sort <- function(graph_obj) {
 #' stale_nodes <- find_descendants(graph_obj, "input_data.csv")
 #' }
 find_descendants <- function(graph_obj, node) {
-  adj_list <- graph_obj$adjacency_list
-  
-  if (!node %in% names(adj_list)) {
+  nodes <- graph_obj$nodes
+  edges <- graph_obj$edges
+
+  if (!node %in% nodes) {
     stop("Node '", node, "' not found in graph")
   }
-  
+
+  # Get neighbors from edges
+  get_neighbors <- function(n) {
+    edges$to[edges$from == n]
+  }
+
   visited <- character(0)
-  to_visit <- adj_list[[node]]
-  
+  to_visit <- get_neighbors(node)
+
   while (length(to_visit) > 0) {
     current <- to_visit[1]
     to_visit <- to_visit[-1]
-    
+
     if (!current %in% visited) {
       visited <- c(visited, current)
       # Add neighbors to visit queue
-      to_visit <- c(to_visit, adj_list[[current]])
+      to_visit <- c(to_visit, get_neighbors(current))
     }
   }
-  
+
   sort(unique(visited))
 }
