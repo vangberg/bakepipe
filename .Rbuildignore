@@ -4,3 +4,7 @@
 ^CLAUDE\.md$
 ^\.git$
 ^\.gitignore$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$
