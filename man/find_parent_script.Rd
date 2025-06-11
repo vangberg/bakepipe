@@ -4,12 +4,12 @@
 \alias{find_parent_script}
 \title{Find the parent script that produces a given artifact}
 \usage{
-find_parent_script(artifact_name, parse_data)
+find_parent_script(artifact_name, graph_obj)
 }
 \arguments{
 \item{artifact_name}{Name of the artifact file}
 
-\item{parse_data}{Parsed script data}
+\item{graph_obj}{Graph object with edges}
 }
 \value{
 Script name that produces the artifact, or NULL if not found

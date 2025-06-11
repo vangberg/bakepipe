@@ -23,7 +23,7 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   })
 
   # First cache call should not create cache file (only read_state)
-  cache_obj <- read_state()
+  state_obj <- read_state()
 
   # Cache file doesn't exist yet - will be created by write_state
   expect_false(file.exists(".bakepipe.state"))
@@ -31,18 +31,18 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   # Run pipeline to create cache file
   run()
   expect_true(file.exists(".bakepipe.state"))
-  expect_type(cache_obj, "list")
-  expect_true("process.R" %in% names(cache_obj))
-  expect_true("input.csv" %in% names(cache_obj))
+  expect_type(state_obj, "list")
+  expect_true("process.R" %in% names(state_obj))
+  expect_true("input.csv" %in% names(state_obj))
 
   # Each entry should have checksum, last_modified, and status
-  expect_true("checksum" %in% names(cache_obj$"process.R"))
-  expect_true("last_modified" %in% names(cache_obj$"process.R"))
-  expect_true("status" %in% names(cache_obj$"process.R"))
+  expect_true("checksum" %in% names(state_obj$"process.R"))
+  expect_true("last_modified" %in% names(state_obj$"process.R"))
+  expect_true("status" %in% names(state_obj$"process.R"))
 
   # All files should initially be marked as stale
-  expect_equal(cache_obj$"process.R"$status, "stale")
-  expect_equal(cache_obj$"input.csv"$status, "stale")
+  expect_equal(state_obj$"process.R"$status, "stale")
+  expect_equal(state_obj$"input.csv"$status, "stale")
 })
 
 test_that("read_state() detects when script content changes", {
@@ -71,15 +71,15 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   })
 
   # First cache - all stale
-  cache_obj1 <- read_state()
-  expect_equal(cache_obj1$"process.R"$status, "stale")
+  state_obj1 <- read_state()
+  expect_equal(state_obj1$"process.R"$status, "stale")
 
   # Simulate running pipeline - mark as fresh
   write_state(parse())
 
   # Second cache - should be fresh since no changes
-  cache_obj2 <- read_state()
-  expect_equal(cache_obj2$"process.R"$status, "fresh")
+  state_obj2 <- read_state()
+  expect_equal(state_obj2$"process.R"$status, "fresh")
 
   # Modify script content
   modified_script <- '
@@ -91,8 +91,8 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   writeLines(modified_script, "process.R")
 
   # Third cache - should detect change and mark as stale
-  cache_obj3 <- read_state()
-  expect_equal(cache_obj3$"process.R"$status, "stale")
+  state_obj3 <- read_state()
+  expect_equal(state_obj3$"process.R"$status, "stale")
 })
 
 test_that("read_state() detects when artifact is manually modified", {
@@ -122,19 +122,19 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   })
 
   # First cache and mark as fresh
-  cache_obj1 <- read_state()
+  state_obj1 <- read_state()
   write_state(c("process.R"))
 
   # Second cache - should be fresh
-  cache_obj2 <- read_state()
-  expect_equal(cache_obj2$"output.csv"$status, "fresh")
+  state_obj2 <- read_state()
+  expect_equal(state_obj2$"output.csv"$status, "fresh")
 
   # Manually modify output file
   writeLines("data,value\nA,1\nB,2\nC,3", "output.csv")
 
   # Third cache - should detect artifact change
-  cache_obj3 <- read_state()
-  expect_equal(cache_obj3$"output.csv"$status, "stale")
+  state_obj3 <- read_state()
+  expect_equal(state_obj3$"output.csv"$status, "stale")
 })
 
 test_that("manually modified artifact marks parent script and descendants as stale", {
@@ -175,8 +175,8 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
 
   # Get fresh cache state after run
   pipeline_data <- parse()
-  cache_obj <- read_state()
-  graph_obj <- graph(pipeline_data, cache_obj)
+  state_obj <- read_state()
+  graph_obj <- graph(pipeline_data, state_obj)
 
   # Verify all are fresh initially (after running)
   expect_false("script1.R" %in% graph_obj$stale_nodes)
@@ -187,8 +187,8 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
   writeLines("data,value\nA,1\nB,2\nC,3", "file.csv")
 
   # Re-create graph with updated cache
-  cache_obj2 <- read_state()
-  graph_obj2 <- graph(pipeline_data, cache_obj2)
+  state_obj2 <- read_state()
+  graph_obj2 <- graph(pipeline_data, state_obj2)
 
   # Should mark script1.R (parent), file.csv (modified artifact), and script2.R + final.csv (descendants) as stale
   expect_true("script1.R" %in% graph_obj2$stale_nodes)  # Parent script
@@ -231,10 +231,10 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
   })
 
   pipeline_data <- parse()
-  cache_obj <- read_state()
+  state_obj <- read_state()
 
   # Create graph with cache - should mark stale nodes
-  graph_obj <- graph(pipeline_data, cache_obj)
+  graph_obj <- graph(pipeline_data, state_obj)
 
   expect_true("stale_nodes" %in% names(graph_obj))
   expect_true("step1.R" %in% graph_obj$stale_nodes)
@@ -242,15 +242,15 @@ write.csv(data, file_out("final.csv"), row.names = FALSE)
   expect_true("input.csv" %in% graph_obj$stale_nodes)
 
   # Mark step1 as fresh and test propagation
-  cache_obj_fresh <- cache_obj
-  cache_obj_fresh$"step1.R"$status <- "fresh"
-  cache_obj_fresh$"input.csv"$status <- "fresh"
-  cache_obj_fresh$"intermediate.csv"$status <- "fresh"
+  state_obj_fresh <- state_obj
+  state_obj_fresh$"step1.R"$status <- "fresh"
+  state_obj_fresh$"input.csv"$status <- "fresh"
+  state_obj_fresh$"intermediate.csv"$status <- "fresh"
 
   # Modify step2 to make it stale
-  cache_obj_fresh$"step2.R"$status <- "stale"
+  state_obj_fresh$"step2.R"$status <- "stale"
 
-  graph_obj2 <- graph(pipeline_data, cache_obj_fresh)
+  graph_obj2 <- graph(pipeline_data, state_obj_fresh)
 
   # Only step2 and its outputs should be stale
   expect_true("step2.R" %in% graph_obj2$stale_nodes)

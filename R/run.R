@@ -15,10 +15,10 @@ run <- function() {
   }
 
   # Get state information
-  cache_obj <- read_state()
+  state_obj <- read_state()
 
-  # Create dependency graph with cache information
-  graph_obj <- graph(pipeline_data, cache_obj)
+  # Create dependency graph with state information
+  graph_obj <- graph(pipeline_data, state_obj)
 
   # Get scripts in topological order
   topo_order <- topological_sort(graph_obj)
@@ -27,11 +27,11 @@ run <- function() {
   script_names <- names(pipeline_data)
   scripts_in_order <- topo_order[topo_order %in% script_names]
 
-  # Filter to only stale scripts if cache information is available
+  # Filter to only stale scripts if state information is available
   if ("stale_nodes" %in% names(graph_obj)) {
     scripts_to_run <- scripts_in_order[scripts_in_order %in% graph_obj$stale_nodes]
   } else {
-    # No cache info - run all scripts
+    # No state info - run all scripts
     scripts_to_run <- scripts_in_order
   }
 
@@ -79,9 +79,7 @@ run <- function() {
   }
 
   # Update state to mark executed scripts as fresh
-  if (length(scripts_to_run) > 0) {
-    write_state(pipeline_data)
-  }
+  write_state(pipeline_data)
 
   # Return unique list of created files
   unique(created_files)

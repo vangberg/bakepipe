@@ -15,20 +15,20 @@ status <- function() {
   }
 
   # Get state information for stale/fresh status
-  cache_obj <- read_state()
-  graph_obj <- graph(pipeline_data, cache_obj)
+  state_obj <- read_state()
+  graph_obj <- graph(pipeline_data, state_obj)
   
   # Display tree-style status
-  display_tree_status(pipeline_data, cache_obj, graph_obj)
+  display_tree_status(pipeline_data, state_obj, graph_obj)
 
   invisible(NULL)
 }
 
 #' Display tree-style pipeline status
 #' @param pipeline_data Parsed pipeline data
-#' @param cache_obj Cache object for stale/fresh status
+#' @param state_obj State object for stale/fresh status
 #' @param graph_obj Graph object with dependency information
-display_tree_status <- function(pipeline_data, cache_obj = NULL,
+display_tree_status <- function(pipeline_data, state_obj = NULL,
                                 graph_obj = NULL) {
   # Get topological order
   topo_order <- topological_sort(graph_obj)
@@ -36,7 +36,7 @@ display_tree_status <- function(pipeline_data, cache_obj = NULL,
 
   # Get status for files/scripts
   get_status <- function(item) {
-    if (!is.null(cache_obj) && item %in% names(cache_obj)) {
+    if (!is.null(state_obj) && item %in% names(state_obj)) {
       if ("stale_nodes" %in% names(graph_obj) &&
             item %in% graph_obj$stale_nodes) {
         "Stale"

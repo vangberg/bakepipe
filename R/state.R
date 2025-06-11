@@ -22,7 +22,7 @@
 #' }
 #' }
 read_state <- function() {
-  state_file <- ".bakepipe.state"
+  state_file <- file.path(root(), ".bakepipe.state")
   
   # Read existing state if it exists
   if (!file.exists(state_file)) {
@@ -74,32 +74,26 @@ read_state <- function() {
 #' @param parse_obj Parsed pipeline object containing script dependencies
 #' @keywords internal
 write_state <- function(parse_obj) {
-  state_file <- ".bakepipe.state"
+  state_file <- file.path(root(), ".bakepipe.state")
 
   # Build state object from all files in pipeline
   state_obj <- list()
 
-  # Add all scripts and their artifacts to state
+  # Add all files (scripts, inputs, outputs) to state
+  all_files <- character(0)
   for (script_name in names(parse_obj)) {
-    if (file.exists(script_name)) {
-      state_obj[[script_name]] <- list(
-        checksum = as.character(tools::md5sum(script_name)),
-        last_modified = as.character(file.info(script_name)$mtime),
+    all_files <- c(all_files, script_name, 
+                   parse_obj[[script_name]]$inputs, 
+                   parse_obj[[script_name]]$outputs)
+  }
+  all_files <- unique(all_files)
+  for (file_name in all_files) {
+    if (file.exists(file_name)) {
+      state_obj[[file_name]] <- list(
+        checksum = as.character(tools::md5sum(file_name)),
+        last_modified = as.character(file.info(file_name)$mtime),
         status = "fresh"
       )
-    }
-
-    # Add all inputs and outputs
-    all_files <- c(parse_obj[[script_name]]$inputs,
-                   parse_obj[[script_name]]$outputs)
-    for (file_name in all_files) {
-      if (file.exists(file_name) && !file_name %in% names(state_obj)) {
-        state_obj[[file_name]] <- list(
-          checksum = as.character(tools::md5sum(file_name)),
-          last_modified = as.character(file.info(file_name)$mtime),
-          status = "fresh"
-        )
-      }
     }
   }
 

@@ -17,9 +17,9 @@ clean <- function() {
 
   # If no scripts found, just try to remove cache and return
   if (length(dependencies) == 0) {
-    cache_file <- ".bakepipe_cache.csv"
-    if (file.exists(cache_file) && file.remove(cache_file)) {
-      return(cache_file)
+    state_file <- file.path(root(), ".bakepipe.state")
+    if (file.exists(state_file) && file.remove(state_file)) {
+      return(state_file)
     } else {
       return(character(0))
     }
@@ -35,9 +35,9 @@ clean <- function() {
   # Remove duplicates
   all_outputs <- unique(all_outputs)
 
-  # Add cache file to files to remove
-  cache_file <- ".bakepipe_cache.csv"
-  files_to_check <- c(all_outputs, cache_file)
+  # Add state file to files to remove
+  state_file <- file.path(root(), ".bakepipe.state")
+  files_to_check <- c(all_outputs, state_file)
 
   # Only try to remove files that actually exist
   existing_files <- files_to_check[file.exists(files_to_check)]

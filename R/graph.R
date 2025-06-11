@@ -6,13 +6,13 @@
 #'
 #' @param parse_data Named list from parse() function, where each element
 #'   represents a script with 'inputs' and 'outputs' character vectors.
-#' @param cache_obj Optional state object from read_state() function to determine
+#' @param state_obj Optional state object from read_state() function to determine
 #'   which nodes are stale.
 #' @return List containing:
 #'   \itemize{
 #'     \item{nodes: Character vector of all nodes (scripts and artifacts)}
 #'     \item{edges: Data frame with 'from' and 'to' columns representing edges}
-#'     \item{stale_nodes: Character vector of nodes marked as stale (if cache_obj provided)}
+#'     \item{stale_nodes: Character vector of nodes marked as stale (if state_obj provided)}
 #'   }
 #' @importFrom stats setNames
 #' @export
@@ -26,13 +26,13 @@
 #' state_obj <- read_state()
 #' graph_obj <- graph(parsed, state_obj)
 #' }
-graph <- function(parse_data, cache_obj = NULL) {
+graph <- function(parse_data, state_obj = NULL) {
   if (length(parse_data) == 0) {
     result <- list(
       nodes = character(0),
       edges = data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
     )
-    if (!is.null(cache_obj)) {
+    if (!is.null(state_obj)) {
       result$stale_nodes <- character(0)
     }
     return(result)
@@ -57,8 +57,8 @@ graph <- function(parse_data, cache_obj = NULL) {
   detect_cycles(graph_obj)
   
   # Add stale node information if cache is provided
-  if (!is.null(cache_obj)) {
-    graph_obj$stale_nodes <- determine_stale_nodes(graph_obj, cache_obj, parse_data)
+  if (!is.null(state_obj)) {
+    graph_obj$stale_nodes <- determine_stale_nodes(graph_obj, state_obj, parse_data)
   }
   
   return(graph_obj)
@@ -292,15 +292,15 @@ find_descendants <- function(graph_obj, node) {
 #' - If an artifact is stale (manually modified), mark its parent script and all descendants as stale
 #'
 #' @param graph_obj Graph object with nodes and edges
-#' @param cache_obj State object from read_state() function
+#' @param state_obj State object from read_state() function
 #' @param parse_data Parsed script data to identify script-artifact relationships
 #' @return Character vector of stale node names
 #' @keywords internal
-determine_stale_nodes <- function(graph_obj, cache_obj, parse_data) {
+determine_stale_nodes <- function(graph_obj, state_obj, parse_data) {
   stale_nodes <- character(0)
   
-  # Get all nodes that are directly marked as stale in cache
-  directly_stale <- names(cache_obj)[sapply(cache_obj, function(x) x$status == "stale")]
+  # Get all nodes that are directly marked as stale in state
+  directly_stale <- names(state_obj)[sapply(state_obj, function(x) x$status == "stale")]
   
   # Also check for missing output files that should exist but aren't in cache
   all_outputs <- character(0)
@@ -311,7 +311,7 @@ determine_stale_nodes <- function(graph_obj, cache_obj, parse_data) {
   
   # Missing output files are implicitly stale
   missing_outputs <- all_outputs[!file.exists(all_outputs)]
-  missing_stale <- missing_outputs[!missing_outputs %in% names(cache_obj)]
+  missing_stale <- missing_outputs[!missing_outputs %in% names(state_obj)]
   
   # Combine directly stale and missing files
   all_stale <- unique(c(directly_stale, missing_stale))
@@ -326,7 +326,7 @@ determine_stale_nodes <- function(graph_obj, cache_obj, parse_data) {
         stale_nodes <- c(stale_nodes, descendants)
       } else {
         # It's an artifact - find its parent script and mark parent + descendants as stale
-        parent_script <- find_parent_script(stale_node, parse_data)
+        parent_script <- find_parent_script(stale_node, graph_obj)
         
         # Mark the artifact itself as stale
         stale_nodes <- c(stale_nodes, stale_node)
@@ -351,14 +351,16 @@ determine_stale_nodes <- function(graph_obj, cache_obj, parse_data) {
 #' Find the parent script that produces a given artifact
 #'
 #' @param artifact_name Name of the artifact file
-#' @param parse_data Parsed script data
+#' @param graph_obj Graph object with edges
 #' @return Script name that produces the artifact, or NULL if not found
 #' @keywords internal
-find_parent_script <- function(artifact_name, parse_data) {
-  for (script_name in names(parse_data)) {
-    if (artifact_name %in% parse_data[[script_name]]$outputs) {
-      return(script_name)
-    }
+find_parent_script <- function(artifact_name, graph_obj) {
+  # Find the parent script by looking at incoming edges to the artifact
+  incoming_edges <- graph_obj$edges[graph_obj$edges$to == artifact_name, ]
+  script_parents <- incoming_edges$from[incoming_edges$from != artifact_name]
+  
+  if (length(script_parents) > 0) {
+    return(script_parents[1])  # Return first script parent
   }
   NULL
 }
