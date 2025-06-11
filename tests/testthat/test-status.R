@@ -218,3 +218,106 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   setwd(old_wd)
   unlink(project_dir, recursive = TRUE)
 })
+
+test_that("status() displays artifacts table with file status", {
+  # Create a temporary directory structure
+  temp_dir <- tempfile()
+  old_wd <- getwd()
+  
+  # Setup: Create a temporary project directory
+  project_dir <- temp_dir
+  dir.create(project_dir, recursive = TRUE)
+  
+  # Create _bakepipe.R in the project root
+  bakepipe_file <- file.path(project_dir, "_bakepipe.R")
+  file.create(bakepipe_file)
+  
+  # Create test scripts
+  script1 <- file.path(project_dir, "process.R")
+  cat('
+data <- read.csv(file_in("input.csv"))
+result <- process(data)
+write.csv(result, file_out("output.csv"))
+', file = script1)
+  
+  script2 <- file.path(project_dir, "analyze.R")
+  cat('
+processed <- read.csv(file_in("output.csv"))
+analysis <- analyze(processed)
+write.csv(analysis, file_out("analysis.csv"))
+', file = script2)
+  
+  # Create some of the input files (to test Present/Missing status)
+  input_file <- file.path(project_dir, "input.csv")
+  cat("col1,col2\n1,2\n3,4\n", file = input_file)
+  
+  # Change to project directory
+  setwd(project_dir)
+  
+  # Test: status() should display both scripts and artifacts tables
+  output <- capture.output(status())
+  
+  # Should contain Scripts section
+  expect_true(any(grepl("Scripts", output)))
+  
+  # Should contain Artifacts section
+  expect_true(any(grepl("Artifacts", output)))
+  
+  # Should show artifact names
+  expect_true(any(grepl("input.csv", output)))
+  expect_true(any(grepl("output.csv", output)))
+  expect_true(any(grepl("analysis.csv", output)))
+  
+  # Should show file status
+  expect_true(any(grepl("Present", output)))
+  expect_true(any(grepl("Missing", output)))
+  
+  # Should show Status column header
+  expect_true(any(grepl("Status", output)))
+  
+  # Cleanup
+  setwd(old_wd)
+  unlink(project_dir, recursive = TRUE)
+})
+
+test_that("status() shows two separate tables for scripts and artifacts", {
+  # Create a temporary directory structure
+  temp_dir <- tempfile()
+  old_wd <- getwd()
+  
+  # Setup: Create a temporary project directory
+  project_dir <- temp_dir
+  dir.create(project_dir, recursive = TRUE)
+  
+  # Create _bakepipe.R in the project root
+  bakepipe_file <- file.path(project_dir, "_bakepipe.R")
+  file.create(bakepipe_file)
+  
+  # Create test script
+  script1 <- file.path(project_dir, "example.R")
+  cat('
+data <- read.csv(file_in("data.csv"))
+write.csv(data, file_out("result.csv"))
+', file = script1)
+  
+  # Change to project directory
+  setwd(project_dir)
+  
+  # Test: status() should show distinct sections
+  output <- capture.output(status())
+  
+  # Should have Scripts section
+  scripts_start <- which(grepl("Scripts", output))
+  expect_true(length(scripts_start) > 0)
+  
+  # Should have Artifacts section
+  artifacts_start <- which(grepl("Artifacts", output))
+  expect_true(length(artifacts_start) > 0)
+  
+  # Scripts section should come before Artifacts section
+  expect_true(scripts_start[1] < artifacts_start[1])
+  
+  # Cleanup
+  setwd(old_wd)
+  unlink(project_dir, recursive = TRUE)
+})
