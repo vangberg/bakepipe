@@ -1,0 +1,14 @@
+# Sample project generated files
+sample-project/cleaned_data.csv
+sample-project/analysis_results.rds
+sample-project/report.txt
+
+# R files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# OS files
+.DS_Store
+Thumbs.db
