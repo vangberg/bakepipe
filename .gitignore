@@ -13,3 +13,6 @@ sample-project/report.txt
 .DS_Store
 Thumbs.db
 docs
+
+# Claude Code files
+.claude
