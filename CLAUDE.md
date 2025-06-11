@@ -36,3 +36,10 @@ When implementing new features:
 ## Testing Principles
 
 - Avoid mocks in tests when possible
+
+## Notifications
+
+When Claude Code needs user input or attention, use terminal-notifier:
+```bash
+terminal-notifier -message "Claude Code needs your input" -title "Claude Code" -sound "default"
+```
