@@ -21,7 +21,7 @@ test_that("graph() creates correct DAG structure from parse output", {
   expect_type(graph, "list")
   expect_true("nodes" %in% names(graph))
   expect_true("edges" %in% names(graph))
-  expect_true("adjacency_list" %in% names(graph))
+  # adjacency_list removed - only using edges now
   
   # Nodes should include both scripts and artifacts
   nodes <- graph$nodes
@@ -36,15 +36,11 @@ test_that("graph() creates correct DAG structure from parse output", {
   expect_true("cleaned_data.csv" %in% nodes)
   expect_true("summary_stats.txt" %in% nodes)
   
-  # Should have adjacency list for efficient graph operations
-  adj_list <- graph$adjacency_list
-  expect_type(adj_list, "list")
-  
-  # Check specific dependencies
-  # sales.csv -> analysis.R -> monthly_sales.csv -> report_generation.R
-  expect_true("analysis.R" %in% adj_list[["sales.csv"]])
-  expect_true("monthly_sales.csv" %in% adj_list[["analysis.R"]])
-  expect_true("report_generation.R" %in% adj_list[["monthly_sales.csv"]])
+  # Check edges for specific dependencies
+  edges <- graph$edges
+  expect_true(any(edges$from == "sales.csv" & edges$to == "analysis.R"))
+  expect_true(any(edges$from == "analysis.R" & edges$to == "monthly_sales.csv"))
+  expect_true(any(edges$from == "monthly_sales.csv" & edges$to == "report_generation.R"))
 })
 
 test_that("graph() detects cyclic dependencies", {
@@ -154,7 +150,7 @@ test_that("graph() handles empty parse data", {
   
   expect_type(graph_obj, "list")
   expect_equal(length(graph_obj$nodes), 0)
-  expect_equal(length(graph_obj$adjacency_list), 0)
+  expect_equal(nrow(graph_obj$edges), 0)
 })
 
 test_that("graph() handles scripts with no dependencies", {
@@ -175,11 +171,13 @@ test_that("graph() handles scripts with no dependencies", {
   expect_true("producer.R" %in% graph_obj$nodes)
   expect_true("data.csv" %in% graph_obj$nodes)
   
-  # Standalone script should have no connections
-  expect_equal(length(graph_obj$adjacency_list[["standalone.R"]]), 0)
+  # Check edges - standalone script should have no edges
+  standalone_edges <- graph_obj$edges[graph_obj$edges$from == "standalone.R" | 
+                                     graph_obj$edges$to == "standalone.R", ]
+  expect_equal(nrow(standalone_edges), 0)
   
   # Producer should connect to its output
-  expect_true("data.csv" %in% graph_obj$adjacency_list[["producer.R"]])
+  expect_true(any(graph_obj$edges$from == "producer.R" & graph_obj$edges$to == "data.csv"))
 })
 
 test_that("topological_sort() returns scripts in dependency order", {

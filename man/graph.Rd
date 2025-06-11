@@ -15,13 +15,11 @@ List containing:
 \itemize{
 \item{nodes: Character vector of all nodes (scripts and artifacts)}
 \item{edges: Data frame with 'from' and 'to' columns representing edges}
-\item{adjacency_list: Named list where each element contains downstream neighbors}
 }
 }
 \description{
 Builds a Directed Acyclic Graph (DAG) representing the dependencies between
-scripts and data files. The graph is represented using an adjacency list for
-efficient traversal operations.
+scripts and data files. The graph is represented using an edges data frame.
 }
 \examples{
 \dontrun{
