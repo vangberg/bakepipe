@@ -1,14 +1,14 @@
 #' Create dependency graph from parsed script data
 #'
-#' Builds a Directed Acyclic Graph (DAG) representing the dependencies between
-#' scripts and data files. The graph is represented using an edges data frame.
+#' Builds a Directed Acyclic Graph (DAG) where scripts are nodes and files are edges.
+#' Each edge represents a file dependency between two scripts.
 #'
 #' @param parse_data Named list from parse() function, where each element
 #'   represents a script with 'inputs' and 'outputs' character vectors.
 #' @return List containing:
 #'   \itemize{
-#'     \item{nodes: Character vector of all nodes (scripts and artifacts)}
-#'     \item{edges: Data frame with 'from' and 'to' columns representing edges}
+#'     \item{nodes: Character vector of script names}
+#'     \item{edges: Data frame with 'from', 'to', and 'file' columns}
 #'   }
 #' @importFrom stats setNames
 #' @export
@@ -22,18 +22,18 @@ graph <- function(parse_data) {
   if (length(parse_data) == 0) {
     return(list(
       nodes = character(0),
-      edges = data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
+      edges = data.frame(from = character(0), to = character(0), file = character(0), stringsAsFactors = FALSE)
     ))
   }
   
   # Validate single producer per artifact
   validate_single_producer(parse_data)
   
-  # Collect all nodes (scripts and artifacts)
-  nodes <- collect_all_nodes(parse_data)
+  # Collect script nodes
+  nodes <- names(parse_data)
   
-  # Build edges
-  edges <- build_edges(parse_data)
+  # Build edges between scripts through files
+  edges <- build_script_edges(parse_data)
   
   # Create graph object
   graph_obj <- list(
@@ -67,51 +67,47 @@ validate_single_producer <- function(parse_data) {
   }
 }
 
-#' Collect all unique nodes from parse data
+#' Build edges between scripts through file dependencies
+#'
+#' Creates edges where scripts are connected if one produces a file that
+#' another consumes.
 #'
 #' @param parse_data Named list from parse() function
-#' @return Character vector of all unique nodes
+#' @return Data frame with 'from', 'to', and 'file' columns
 #' @keywords internal
-collect_all_nodes <- function(parse_data) {
-  nodes <- character(0)
-  
-  # Add all scripts
-  nodes <- c(nodes, names(parse_data))
-  
-  # Add all input and output artifacts
-  for (script_data in parse_data) {
-    nodes <- c(nodes, script_data$inputs, script_data$outputs)
-  }
-  
-  # Return unique nodes
-  unique(nodes)
-}
+build_script_edges <- function(parse_data) {
+  edges <- data.frame(from = character(0), to = character(0),
+                      file = character(0), stringsAsFactors = FALSE)
 
-#' Build edges from parse data
-#'
-#' @param parse_data Named list from parse() function
-#' @return Data frame with 'from' and 'to' columns representing edges
-#' @keywords internal
-build_edges <- function(parse_data) {
-  edges <- data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE)
-  
-  # Build edges: artifact -> script (inputs) and script -> artifact (outputs)
+  # Create a mapping of files to their producers
+  file_producers <- list()
+  for (script_name in names(parse_data)) {
+    for (output in parse_data[[script_name]]$outputs) {
+      file_producers[[output]] <- script_name
+    }
+  }
+
+  # For each script, find dependencies through input files
   for (script_name in names(parse_data)) {
     script_data <- parse_data[[script_name]]
-    
-    # Edges from input artifacts to script
-    for (input in script_data$inputs) {
-      edges <- rbind(edges, data.frame(from = input, to = script_name, stringsAsFactors = FALSE))
-    }
-    
-    # Edges from script to output artifacts
-    for (output in script_data$outputs) {
-      edges <- rbind(edges, data.frame(from = script_name, to = output, stringsAsFactors = FALSE))
+
+    for (input_file in script_data$inputs) {
+      # If this input file is produced by another script, create an edge
+      if (input_file %in% names(file_producers)) {
+        producer_script <- file_producers[[input_file]]
+        edges <- rbind(edges, data.frame(
+          from = producer_script,
+          to = script_name,
+          file = input_file,
+          stringsAsFactors = FALSE
+        ))
+      }
     }
   }
-  
+
   edges
 }
+
 
 #' Detect cycles in the dependency graph using DFS
 #'
@@ -163,11 +159,11 @@ detect_cycles <- function(graph_obj) {
 
 #' Topological sort of the dependency graph
 #'
-#' Returns nodes in topological order using Kahn's algorithm. Scripts will
+#' Returns scripts in topological order using Kahn's algorithm. Scripts will
 #' appear in an order where all dependencies come before the script.
 #'
 #' @param graph_obj Graph object from graph() function
-#' @return Character vector of nodes in topological order
+#' @return Character vector of script names in topological order
 #' @export
 #' @examples
 #' \dontrun{
@@ -222,21 +218,21 @@ topological_sort <- function(graph_obj) {
   result
 }
 
-#' Find all descendants of a node in the dependency graph
+#' Find all descendants of a script in the dependency graph
 #'
-#' Returns all nodes that are reachable from the given node by following
-#' the directed edges. Useful for marking nodes as stale when an upstream
+#' Returns all scripts that depend on the given script by following
+#' the directed edges. Useful for marking scripts as stale when an upstream
 #' dependency changes.
 #'
 #' @param graph_obj Graph object from graph() function
-#' @param node Starting node to find descendants from
-#' @return Character vector of all descendant nodes
+#' @param node Starting script to find descendants from
+#' @return Character vector of all descendant script names
 #' @export
 #' @examples
 #' \dontrun{
 #' parsed <- parse()
 #' graph_obj <- graph(parsed)
-#' stale_nodes <- find_descendants(graph_obj, "input_data.csv")
+#' stale_scripts <- find_descendants(graph_obj, "data_cleaning.R")
 #' }
 find_descendants <- function(graph_obj, node) {
   nodes <- graph_obj$nodes

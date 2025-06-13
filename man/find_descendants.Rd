@@ -2,27 +2,27 @@
 % Please edit documentation in R/graph.R
 \name{find_descendants}
 \alias{find_descendants}
-\title{Find all descendants of a node in the dependency graph}
+\title{Find all descendants of a script in the dependency graph}
 \usage{
 find_descendants(graph_obj, node)
 }
 \arguments{
 \item{graph_obj}{Graph object from graph() function}
 
-\item{node}{Starting node to find descendants from}
+\item{node}{Starting script to find descendants from}
 }
 \value{
-Character vector of all descendant nodes
+Character vector of all descendant script names
 }
 \description{
-Returns all nodes that are reachable from the given node by following
-the directed edges. Useful for marking nodes as stale when an upstream
+Returns all scripts that depend on the given script by following
+the directed edges. Useful for marking scripts as stale when an upstream
 dependency changes.
 }
 \examples{
 \dontrun{
 parsed <- parse()
 graph_obj <- graph(parsed)
-stale_nodes <- find_descendants(graph_obj, "input_data.csv")
+stale_scripts <- find_descendants(graph_obj, "data_cleaning.R")
 }
 }

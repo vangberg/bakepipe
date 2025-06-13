@@ -21,9 +21,9 @@ status <- function() {
   # Display Scripts table
   cat("Scripts:\n")
   display_scripts_table(pipeline_data)
-  
+
   cat("\n")
-  
+
   # Display Artifacts table
   cat("Artifacts:\n")
   display_artifacts_table(pipeline_data)
@@ -37,10 +37,9 @@ display_scripts_table <- function(pipeline_data) {
   # Create graph and get topological order
   graph_obj <- graph(pipeline_data)
   topo_order <- topological_sort(graph_obj)
-  
+
   # Filter to get only scripts in topological order
   scripts <- intersect(topo_order, names(pipeline_data))
-  
   # Prepare data for table display
   inputs_list <- lapply(scripts, function(script) {
     paste(pipeline_data[[script]]$inputs, collapse = ", ")
@@ -92,25 +91,45 @@ display_scripts_table <- function(pipeline_data) {
 #' Display the artifacts table
 #' @param pipeline_data Parsed pipeline data
 display_artifacts_table <- function(pipeline_data) {
-  # Create graph and get topological order
+  # Create graph and get script topological order
   graph_obj <- graph(pipeline_data)
-  topo_order <- topological_sort(graph_obj)
-  
-  # Collect all unique artifacts from inputs and outputs
+  script_topo_order <- topological_sort(graph_obj)
+
+  # Collect all unique artifacts and order them by dependency
   all_artifacts <- character(0)
-  
+  artifact_order <- character(0)
+
+  # First add input artifacts that aren't produced by any script
   for (script_data in pipeline_data) {
     all_artifacts <- c(all_artifacts, script_data$inputs, script_data$outputs)
   }
-  
-  # Get unique artifacts in topological order
-  unique_artifacts <- intersect(topo_order, unique(all_artifacts))
-  
+  unique_artifacts <- unique(all_artifacts)
+
+  # Find which artifacts are produced by scripts
+  produced_artifacts <- character(0)
+  for (script_data in pipeline_data) {
+    produced_artifacts <- c(produced_artifacts, script_data$outputs)
+  }
+
+  # Add external input files first (not produced by any script)
+  external_inputs <- setdiff(unique_artifacts, produced_artifacts)
+  artifact_order <- c(artifact_order, external_inputs)
+
+  # Then add artifacts in script dependency order
+  for (script in script_topo_order) {
+    if (script %in% names(pipeline_data)) {
+      script_outputs <- pipeline_data[[script]]$outputs
+      artifact_order <- c(artifact_order, script_outputs)
+    }
+  }
+
+  # Get final ordered list of unique artifacts
+  unique_artifacts <- unique(artifact_order)
+
   if (length(unique_artifacts) == 0) {
     cat("(No artifacts found)\n")
     return(invisible(NULL))
   }
-  
   # Check file existence for each artifact
   artifact_status <- sapply(unique_artifacts, function(artifact) {
     if (file.exists(artifact)) {
@@ -119,14 +138,14 @@ display_artifacts_table <- function(pipeline_data) {
       "✗ Missing"
     }
   })
-  
+
   # Create data frame for artifacts table
   artifacts_df <- data.frame(
     Artifact = unique_artifacts,
     Status = artifact_status,
     stringsAsFactors = FALSE
   )
-  
+
   # Calculate column widths
   col_widths <- c(
     max(nchar(artifacts_df$Artifact), nchar("File")),
