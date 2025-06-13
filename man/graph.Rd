@@ -4,27 +4,36 @@
 \alias{graph}
 \title{Create dependency graph from parsed script data}
 \usage{
-graph(parse_data)
+graph(parse_data, state_obj = NULL)
 }
 \arguments{
 \item{parse_data}{Named list from parse() function, where each element
 represents a script with 'inputs' and 'outputs' character vectors.}
+
+\item{state_obj}{Optional. List from read_state() function containing file
+status information. If provided, will mark nodes as stale/fresh.}
 }
 \value{
 List containing:
 \itemize{
 \item{nodes: Character vector of script names}
 \item{edges: Data frame with 'from', 'to', and 'file' columns}
+\item{stale_nodes: Character vector of stale script names (if state_obj provided)}
 }
 }
 \description{
 Builds a Directed Acyclic Graph (DAG) where scripts are nodes and files are edges.
-Each edge represents a file dependency between two scripts.
+Each edge represents a file dependency between two scripts. Optionally accepts
+a state object to mark nodes as stale or fresh based on file changes.
 }
 \examples{
 \dontrun{
 # Parse scripts and create dependency graph
 parsed <- parse()
 graph_obj <- graph(parsed)
+
+# With state information
+state_obj <- read_state(".bakepipe.state", parsed)
+graph_obj <- graph(parsed, state_obj)
 }
 }
