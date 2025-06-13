@@ -10,10 +10,10 @@ topological_sort(graph_obj)
 \item{graph_obj}{Graph object from graph() function}
 }
 \value{
-Character vector of nodes in topological order
+Character vector of script names in topological order
 }
 \description{
-Returns nodes in topological order using Kahn's algorithm. Scripts will
+Returns scripts in topological order using Kahn's algorithm. Scripts will
 appear in an order where all dependencies come before the script.
 }
 \examples{

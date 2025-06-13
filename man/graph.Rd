@@ -13,13 +13,13 @@ represents a script with 'inputs' and 'outputs' character vectors.}
 \value{
 List containing:
 \itemize{
-\item{nodes: Character vector of all nodes (scripts and artifacts)}
-\item{edges: Data frame with 'from' and 'to' columns representing edges}
+\item{nodes: Character vector of script names}
+\item{edges: Data frame with 'from', 'to', and 'file' columns}
 }
 }
 \description{
-Builds a Directed Acyclic Graph (DAG) representing the dependencies between
-scripts and data files. The graph is represented using an edges data frame.
+Builds a Directed Acyclic Graph (DAG) where scripts are nodes and files are edges.
+Each edge represents a file dependency between two scripts.
 }
 \examples{
 \dontrun{
