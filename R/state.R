@@ -17,17 +17,41 @@
 read_state <- function(state_file, parse_data = NULL) {
   # Initialize empty state if file doesn't exist
   if (!file.exists(state_file)) {
-    return(list(
-      files = data.frame(
-        file = character(0),
-        checksum = character(0), 
-        last_modified = character(0),
-        status = character(0),
-        stringsAsFactors = FALSE
-      ),
-      current_checksums = character(0),
-      stale_files = character(0)
-    ))
+    # If no state file and parse_data provided, mark all files as stale
+    if (!is.null(parse_data)) {
+      all_files <- character(0)
+      for (script_name in names(parse_data)) {
+        script_data <- parse_data[[script_name]]
+        all_files <- c(all_files, script_name)
+        all_files <- c(all_files, script_data$inputs)
+        all_files <- c(all_files, script_data$outputs)
+      }
+      all_files <- unique(all_files)
+      
+      return(list(
+        files = data.frame(
+          file = character(0),
+          checksum = character(0), 
+          last_modified = character(0),
+          status = character(0),
+          stringsAsFactors = FALSE
+        ),
+        current_checksums = character(0),
+        stale_files = all_files  # Mark all files as stale on first run
+      ))
+    } else {
+      return(list(
+        files = data.frame(
+          file = character(0),
+          checksum = character(0), 
+          last_modified = character(0),
+          status = character(0),
+          stringsAsFactors = FALSE
+        ),
+        current_checksums = character(0),
+        stale_files = character(0)
+      ))
+    }
   }
   
   # Read existing state file

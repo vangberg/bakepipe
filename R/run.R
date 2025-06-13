@@ -1,6 +1,8 @@
 #' Run pipeline
 #'
-#' Execute all scripts in the pipeline graph in topological order
+#' Execute scripts in the pipeline graph in topological order. Only runs
+#' scripts that are stale (have changed or have stale dependencies) for
+#' incremental execution.
 #'
 #' @return Character vector of files that were created or updated
 #' @export
@@ -13,15 +15,27 @@ run <- function() {
     return(character(0))
   }
 
-  # Create dependency graph
-  graph_obj <- graph(pipeline_data)
+  # Read current state
+  state_file <- ".bakepipe.state"
+  state_obj <- read_state(state_file, pipeline_data)
+
+  # Create dependency graph with state information
+  graph_obj <- graph(pipeline_data, state_obj)
 
   # Get scripts in topological order
   topo_order <- topological_sort(graph_obj)
 
   # Filter to only script files (not artifacts)
   script_names <- names(pipeline_data)
-  scripts_to_run <- topo_order[topo_order %in% script_names]
+  all_scripts <- topo_order[topo_order %in% script_names]
+  
+  # Only run stale scripts for incremental execution
+  if ("stale_nodes" %in% names(graph_obj)) {
+    scripts_to_run <- all_scripts[all_scripts %in% graph_obj$stale_nodes]
+  } else {
+    # If no state information, run all scripts
+    scripts_to_run <- all_scripts
+  }
 
   # Track files created during execution
   created_files <- character(0)
@@ -60,6 +74,9 @@ run <- function() {
       }
     }
   }
+
+  # Update state file after execution
+  write_state(state_file, pipeline_data)
 
   # Return unique list of created files
   unique(created_files)
