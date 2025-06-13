@@ -1,0 +1,165 @@
+#' Read pipeline state from disk
+#'
+#' Reads the .bakepipe.state file and computes current checksums to determine
+#' which files are stale. A file is considered stale if its current checksum
+#' differs from the stored checksum.
+#'
+#' @param state_file Path to the state file (typically ".bakepipe.state")
+#' @param parse_data Optional. Named list from parse() function to provide context
+#'   about file relationships for determining script staleness
+#' @return List containing:
+#'   \itemize{
+#'     \item{files: Data frame with file, checksum, last_modified, status columns}
+#'     \item{current_checksums: Named vector of current file checksums}
+#'     \item{stale_files: Character vector of files that are stale}
+#'   }
+#' @export
+read_state <- function(state_file, parse_data = NULL) {
+  # Initialize empty state if file doesn't exist
+  if (!file.exists(state_file)) {
+    return(list(
+      files = data.frame(
+        file = character(0),
+        checksum = character(0), 
+        last_modified = character(0),
+        status = character(0),
+        stringsAsFactors = FALSE
+      ),
+      current_checksums = character(0),
+      stale_files = character(0)
+    ))
+  }
+  
+  # Read existing state file
+  state_data <- read.csv(state_file, stringsAsFactors = FALSE)
+  
+  # Get current checksums for all files in state
+  current_checksums <- character(0)
+  for (file_path in state_data$file) {
+    if (file.exists(file_path)) {
+      current_checksums[file_path] <- compute_file_checksum(file_path)
+    } else {
+      current_checksums[file_path] <- NA_character_
+    }
+  }
+  
+  # Determine which files are stale based on checksum comparison
+  stale_files <- character(0)
+  for (i in seq_len(nrow(state_data))) {
+    file_path <- state_data$file[i]
+    stored_checksum <- state_data$checksum[i]
+    current_checksum <- current_checksums[file_path]
+    
+    # File is stale if checksum differs or file is missing
+    # Don't mark missing files as stale if they were stored as "missing"
+    if (is.na(current_checksum) && stored_checksum != "missing") {
+      stale_files <- c(stale_files, file_path)
+    } else if (!is.na(current_checksum) && 
+                current_checksum != stored_checksum) {
+      stale_files <- c(stale_files, file_path)
+    }
+  }
+
+  # If parse_data is provided, mark scripts as stale based on dependencies
+  if (!is.null(parse_data)) {
+    for (script_name in names(parse_data)) {
+      script_data <- parse_data[[script_name]]
+
+      # Check if script itself is stale
+      if (script_name %in% stale_files) {
+        next  # Already marked as stale
+      }
+
+      # Check if any input files are stale
+      for (input_file in script_data$inputs) {
+        if (input_file %in% stale_files) {
+          stale_files <- c(stale_files, script_name)
+          break
+        }
+      }
+
+      # Check if any output files are stale (manually modified)
+      if (!script_name %in% stale_files) {
+        for (output_file in script_data$outputs) {
+          if (output_file %in% stale_files) {
+            stale_files <- c(stale_files, script_name)
+            break
+          }
+        }
+      }
+    }
+  }
+
+  list(
+    files = state_data,
+    current_checksums = current_checksums,
+    stale_files = unique(stale_files)
+  )
+}
+
+#' Write pipeline state to disk
+#'
+#' Writes the current state of all files in the pipeline to a CSV file.
+#' This includes scripts and all their input/output files with their
+#' current checksums and timestamps.
+#'
+#' @param state_file Path to the state file to write 
+#'   (typically ".bakepipe.state")
+#' @param parse_data Named list from parse() function containing 
+#'   script dependencies
+#' @export
+write_state <- function(state_file, parse_data) {
+  # Collect all unique files from parse_data
+  all_files <- character(0)
+  
+  for (script_name in names(parse_data)) {
+    script_data <- parse_data[[script_name]]
+    all_files <- c(all_files, script_name)
+    all_files <- c(all_files, script_data$inputs)
+    all_files <- c(all_files, script_data$outputs)
+  }
+
+  all_files <- unique(all_files)
+
+  # Create state data frame
+  state_data <- data.frame(
+    file = all_files,
+    checksum = character(length(all_files)),
+    last_modified = character(length(all_files)),
+    status = rep("fresh", length(all_files)),
+    stringsAsFactors = FALSE
+  )
+
+  # Compute checksums and timestamps for existing files
+  for (i in seq_len(nrow(state_data))) {
+    file_path <- state_data$file[i]
+
+    if (file.exists(file_path)) {
+      state_data$checksum[i] <- compute_file_checksum(file_path)
+      file_info <- file.info(file_path)
+      state_data$last_modified[i] <- as.character(file_info$mtime)
+    } else {
+      # For missing files, use placeholder checksum and current timestamp
+      state_data$checksum[i] <- "missing"
+      state_data$last_modified[i] <- as.character(Sys.time())
+    }
+  }
+
+  # Write to CSV file
+  write.csv(state_data, state_file, row.names = FALSE)
+}
+
+#' Compute MD5 checksum for a file
+#'
+#' @param file_path Path to the file
+#' @return Character string containing the MD5 checksum
+#' @keywords internal
+compute_file_checksum <- function(file_path) {
+  if (!file.exists(file_path)) {
+    return(NA_character_)
+  }
+
+  # Use tools::md5sum for consistency with base R
+  checksum <- tools::md5sum(file_path)
+  as.character(checksum)
+}
