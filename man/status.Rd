@@ -8,5 +8,5 @@ status()
 }
 \description{
 Display a textual representation of the input/output relationships
-between files and artifacts in the console
+between scripts in the pipeline, including their current state (fresh/stale)
 }
