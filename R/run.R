@@ -32,9 +32,19 @@ run <- function() {
   # Only run stale scripts for incremental execution
   if ("stale_nodes" %in% names(graph_obj)) {
     scripts_to_run <- all_scripts[all_scripts %in% graph_obj$stale_nodes]
+    scripts_to_skip <- all_scripts[!all_scripts %in% graph_obj$stale_nodes]
   } else {
     # If no state information, run all scripts
     scripts_to_run <- all_scripts
+    scripts_to_skip <- character(0)
+  }
+
+  # Calculate max script name width for alignment
+  max_width <- max(nchar(all_scripts))
+  
+  # Print messages about scripts being skipped
+  for (script_name in scripts_to_skip) {
+    cat(sprintf("%-*s : skipping (fresh)\n", max_width, script_name))
   }
 
   # Track files created during execution
@@ -57,7 +67,7 @@ run <- function() {
     output_files <- script_info$outputs
 
     # Execute the script
-    cat("Running script:", script_name, "\n")
+    cat(sprintf("%-*s : running\n", max_width, script_name))
     tryCatch({
       source(script_name, local = TRUE)
     }, error = function(e) {
