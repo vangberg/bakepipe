@@ -17,7 +17,7 @@ run <- function() {
 
   # Read current state
   state_file <- ".bakepipe.state"
-  state_obj <- read_state(state_file, pipeline_data)
+  state_obj <- read_state(state_file)
 
   # Create dependency graph with state information
   graph_obj <- graph(pipeline_data, state_obj)
@@ -28,7 +28,7 @@ run <- function() {
   # Filter to only script files (not artifacts)
   script_names <- names(pipeline_data)
   all_scripts <- topo_order[topo_order %in% script_names]
-  
+
   # Only run stale scripts for incremental execution
   if ("stale_nodes" %in% names(graph_obj)) {
     scripts_to_run <- all_scripts[all_scripts %in% graph_obj$stale_nodes]
@@ -41,7 +41,7 @@ run <- function() {
 
   # Calculate max script name width for alignment
   max_width <- max(nchar(all_scripts))
-  
+
   # Print messages about scripts being skipped
   for (script_name in scripts_to_skip) {
     cat(sprintf("%-*s : skipping (fresh)\n", max_width, script_name))

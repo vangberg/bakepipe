@@ -4,13 +4,10 @@
 \alias{read_state}
 \title{Read pipeline state from disk}
 \usage{
-read_state(state_file, parse_data = NULL)
+read_state(state_file)
 }
 \arguments{
 \item{state_file}{Path to the state file (typically ".bakepipe.state")}
-
-\item{parse_data}{Optional. Named list from parse() function to provide context
-about file relationships for determining script staleness}
 }
 \value{
 List containing:

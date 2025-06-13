@@ -29,15 +29,15 @@ status <- function() {
 #' @param pipeline_data Parsed pipeline data
 display_scripts_table <- function(pipeline_data) {
   # Read state information
-  state_obj <- read_state(".bakepipe.state", pipeline_data)
-  
+  state_obj <- read_state(".bakepipe.state")
+
   # Create graph with state information
   graph_obj <- graph(pipeline_data, state_obj)
   topo_order <- topological_sort(graph_obj)
 
   # Filter to get only scripts in topological order
   scripts <- intersect(topo_order, names(pipeline_data))
-  
+
   # Prepare data for table display
   inputs_list <- lapply(scripts, function(script) {
     paste(pipeline_data[[script]]$inputs, collapse = ", ")
@@ -45,10 +45,11 @@ display_scripts_table <- function(pipeline_data) {
   outputs_list <- lapply(scripts, function(script) {
     paste(pipeline_data[[script]]$outputs, collapse = ", ")
   })
-  
+
   # Determine state for each script
   state_list <- lapply(scripts, function(script) {
-    if ("stale_nodes" %in% names(graph_obj) && script %in% graph_obj$stale_nodes) {
+    if ("stale_nodes" %in% names(graph_obj) &&
+          script %in% graph_obj$stale_nodes) {
       "Stale"
     } else {
       "Fresh"
@@ -100,4 +101,3 @@ display_scripts_table <- function(pipeline_data) {
                 col_widths[4], df$State[i]))
   }
 }
-

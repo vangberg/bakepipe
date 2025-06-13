@@ -1,12 +1,10 @@
 #' Read pipeline state from disk
 #'
-#' Reads the .bakepipe.state file and computes current checksums to determine
-#' which files are stale. A file is considered stale if its current checksum
-#' differs from the stored checksum.
+#' Reads the .bakepipe.state file and computes current checksums to
+#' determine which files are stale. A file is considered stale if its
+#' current checksum differs from the stored checksum.
 #'
 #' @param state_file Path to the state file (typically ".bakepipe.state")
-#' @param parse_data Optional. Named list from parse() function to provide context
-#'   about file relationships for determining script staleness
 #' @return List containing:
 #'   \itemize{
 #'     \item{files: Data frame with file, checksum, last_modified, status columns}
@@ -14,49 +12,25 @@
 #'     \item{stale_files: Character vector of files that are stale}
 #'   }
 #' @export
-read_state <- function(state_file, parse_data = NULL) {
+read_state <- function(state_file) {
   # Initialize empty state if file doesn't exist
   if (!file.exists(state_file)) {
-    # If no state file and parse_data provided, mark all files as stale
-    if (!is.null(parse_data)) {
-      all_files <- character(0)
-      for (script_name in names(parse_data)) {
-        script_data <- parse_data[[script_name]]
-        all_files <- c(all_files, script_name)
-        all_files <- c(all_files, script_data$inputs)
-        all_files <- c(all_files, script_data$outputs)
-      }
-      all_files <- unique(all_files)
-      
-      return(list(
-        files = data.frame(
-          file = character(0),
-          checksum = character(0), 
-          last_modified = character(0),
-          status = character(0),
-          stringsAsFactors = FALSE
-        ),
-        current_checksums = character(0),
-        stale_files = all_files  # Mark all files as stale on first run
-      ))
-    } else {
-      return(list(
-        files = data.frame(
-          file = character(0),
-          checksum = character(0), 
-          last_modified = character(0),
-          status = character(0),
-          stringsAsFactors = FALSE
-        ),
-        current_checksums = character(0),
-        stale_files = character(0)
-      ))
-    }
+    return(list(
+      files = data.frame(
+        file = character(0),
+        checksum = character(0),
+        last_modified = character(0),
+        status = character(0),
+        stringsAsFactors = FALSE
+      ),
+      current_checksums = character(0),
+      stale_files = character(0)
+    ))
   }
-  
+
   # Read existing state file
   state_data <- read.csv(state_file, stringsAsFactors = FALSE)
-  
+
   # Get current checksums for all files in state
   current_checksums <- character(0)
   for (file_path in state_data$file) {
@@ -66,51 +40,21 @@ read_state <- function(state_file, parse_data = NULL) {
       current_checksums[file_path] <- NA_character_
     }
   }
-  
+
   # Determine which files are stale based on checksum comparison
   stale_files <- character(0)
   for (i in seq_len(nrow(state_data))) {
     file_path <- state_data$file[i]
     stored_checksum <- state_data$checksum[i]
     current_checksum <- current_checksums[file_path]
-    
+
     # File is stale if checksum differs or file is missing
     # Don't mark missing files as stale if they were stored as "missing"
     if (is.na(current_checksum) && stored_checksum != "missing") {
       stale_files <- c(stale_files, file_path)
-    } else if (!is.na(current_checksum) && 
-                current_checksum != stored_checksum) {
+    } else if (!is.na(current_checksum) &&
+                 current_checksum != stored_checksum) {
       stale_files <- c(stale_files, file_path)
-    }
-  }
-
-  # If parse_data is provided, mark scripts as stale based on dependencies
-  if (!is.null(parse_data)) {
-    for (script_name in names(parse_data)) {
-      script_data <- parse_data[[script_name]]
-
-      # Check if script itself is stale
-      if (script_name %in% stale_files) {
-        next  # Already marked as stale
-      }
-
-      # Check if any input files are stale
-      for (input_file in script_data$inputs) {
-        if (input_file %in% stale_files) {
-          stale_files <- c(stale_files, script_name)
-          break
-        }
-      }
-
-      # Check if any output files are stale (manually modified)
-      if (!script_name %in% stale_files) {
-        for (output_file in script_data$outputs) {
-          if (output_file %in% stale_files) {
-            stale_files <- c(stale_files, script_name)
-            break
-          }
-        }
-      }
     }
   }
 

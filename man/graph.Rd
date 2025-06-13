@@ -33,7 +33,7 @@ parsed <- parse()
 graph_obj <- graph(parsed)
 
 # With state information
-state_obj <- read_state(".bakepipe.state", parsed)
+state_obj <- read_state(".bakepipe.state")
 graph_obj <- graph(parsed, state_obj)
 }
 }
