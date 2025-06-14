@@ -193,3 +193,147 @@ test_that("topological_sort() returns scripts in dependency order", {
   
   expect_equal(topo_order, c("step1.R", "step2.R", "step3.R"))
 })
+
+test_that("graph() with state_obj marks nodes as stale correctly", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("intermediate.csv")),
+    "script2.R" = list(inputs = c("intermediate.csv"), outputs = c("output.csv")),
+    "script3.R" = list(inputs = c("other.csv"), outputs = c("final.csv"))
+  )
+  
+  # Create state object with mixed fresh/stale files
+  state_obj <- list(
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "input.csv" = list(checksum = "b1", last_modified = "2023-01-01", status = "stale", current_checksum = "b2"),
+    "intermediate.csv" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "script2.R" = list(checksum = "d1", last_modified = "2023-01-01", status = "fresh", current_checksum = "d1"),
+    "output.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1"),
+    "script3.R" = list(checksum = "f1", last_modified = "2023-01-01", status = "fresh", current_checksum = "f1"),
+    "other.csv" = list(checksum = "g1", last_modified = "2023-01-01", status = "fresh", current_checksum = "g1"),
+    "final.csv" = list(checksum = "h1", last_modified = "2023-01-01", status = "fresh", current_checksum = "h1")
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  expect_true("stale_nodes" %in% names(graph_obj))
+  
+  # script1.R should be stale because its input (input.csv) is stale
+  expect_true("script1.R" %in% graph_obj$stale_nodes)
+  
+  # script2.R should be stale because script1.R (which produces its input) is stale
+  expect_true("script2.R" %in% graph_obj$stale_nodes)
+  
+  # script3.R should be fresh because its dependencies are fresh
+  expect_false("script3.R" %in% graph_obj$stale_nodes)
+})
+
+test_that("graph() without state_obj works as before", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv"))
+  )
+  
+  # Should work without state_obj parameter
+  graph_obj <- graph(parse_data)
+  
+  expect_true("nodes" %in% names(graph_obj))
+  expect_true("edges" %in% names(graph_obj))
+  expect_false("stale_nodes" %in% names(graph_obj))
+})
+
+test_that("graph() marks all nodes as fresh when no stale files", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv")),
+    "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"))
+  )
+  
+  # State object with no stale files
+  state_obj <- list(
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "script2.R" = list(checksum = "b1", last_modified = "2023-01-01", status = "fresh", current_checksum = "b1"),
+    "input.csv" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "output.csv" = list(checksum = "d1", last_modified = "2023-01-01", status = "fresh", current_checksum = "d1"),
+    "final.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1")
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # All scripts should be fresh when no stale files
+  expect_equal(length(graph_obj$stale_nodes), 0)
+})
+
+test_that("graph() marks nodes as stale when files not in state", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv")),
+    "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"))
+  )
+  
+  # State object missing some files (they should be considered stale)
+  state_obj <- list(
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "script2.R" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_),
+    "input.csv" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_),
+    "output.csv" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_),
+    "final.csv" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_)
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # script2.R should be stale (not in state), script1.R should also be stale due to input.csv being stale
+  expect_true("script1.R" %in% graph_obj$stale_nodes)
+  expect_true("script2.R" %in% graph_obj$stale_nodes)
+})
+
+test_that("graph() propagates staleness correctly via DFS", {
+  # Linear pipeline: script1 -> script2 -> script3
+  parse_data <- list(
+    "script1.R" = list(inputs = c("raw.csv"), outputs = c("clean.csv")),
+    "script2.R" = list(inputs = c("clean.csv"), outputs = c("processed.csv")),
+    "script3.R" = list(inputs = c("processed.csv"), outputs = c("final.csv"))
+  )
+  
+  # State where only script1.R is stale
+  state_obj <- list(
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "stale", current_checksum = "a2"),
+    "script2.R" = list(checksum = "b1", last_modified = "2023-01-01", status = "fresh", current_checksum = "b1"),
+    "script3.R" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "raw.csv" = list(checksum = "d1", last_modified = "2023-01-01", status = "fresh", current_checksum = "d1"),
+    "clean.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1"),
+    "processed.csv" = list(checksum = "f1", last_modified = "2023-01-01", status = "fresh", current_checksum = "f1"),
+    "final.csv" = list(checksum = "g1", last_modified = "2023-01-01", status = "fresh", current_checksum = "g1")
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # All scripts should be stale due to propagation
+  expect_true("script1.R" %in% graph_obj$stale_nodes)
+  expect_true("script2.R" %in% graph_obj$stale_nodes)
+  expect_true("script3.R" %in% graph_obj$stale_nodes)
+})
+
+test_that("graph() handles disconnected components correctly", {
+  # Two independent pipelines
+  parse_data <- list(
+    "pipeline1_step1.R" = list(inputs = c("data1.csv"), outputs = c("result1.csv")),
+    "pipeline1_step2.R" = list(inputs = c("result1.csv"), outputs = c("final1.csv")),
+    "pipeline2_step1.R" = list(inputs = c("data2.csv"), outputs = c("final2.csv"))
+  )
+  
+  # Only pipeline1 has stale data
+  state_obj <- list(
+    "pipeline1_step1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "pipeline1_step2.R" = list(checksum = "b1", last_modified = "2023-01-01", status = "fresh", current_checksum = "b1"),
+    "pipeline2_step1.R" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "data1.csv" = list(checksum = "d1", last_modified = "2023-01-01", status = "stale", current_checksum = "d2"),
+    "result1.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1"),
+    "final1.csv" = list(checksum = "f1", last_modified = "2023-01-01", status = "fresh", current_checksum = "f1"),
+    "data2.csv" = list(checksum = "g1", last_modified = "2023-01-01", status = "fresh", current_checksum = "g1"),
+    "final2.csv" = list(checksum = "h1", last_modified = "2023-01-01", status = "fresh", current_checksum = "h1")
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # Only pipeline1 scripts should be stale
+  expect_true("pipeline1_step1.R" %in% graph_obj$stale_nodes)
+  expect_true("pipeline1_step2.R" %in% graph_obj$stale_nodes)
+  expect_false("pipeline2_step1.R" %in% graph_obj$stale_nodes)
+})

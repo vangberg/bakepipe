@@ -34,10 +34,11 @@ ggsave(file_out("quarterly_report.pdf"), report)
   # Capture output to verify format
   output <- capture.output(status())
   
-  # Should contain table headers
+  # Should contain table headers including new State column
   expect_true(any(grepl("Script", output)))
   expect_true(any(grepl("Inputs", output)))
   expect_true(any(grepl("Outputs", output)))
+  expect_true(any(grepl("State", output)))
   
   # Should contain script names
   expect_true(any(grepl("analysis.R", output)))
@@ -88,6 +89,7 @@ process_data <- function(data) {
   expect_true(any(grepl("Script", output)))
   expect_true(any(grepl("Inputs", output)))
   expect_true(any(grepl("Outputs", output)))
+  expect_true(any(grepl("State", output)))
   
   # Cleanup
   setwd(old_wd)
@@ -219,7 +221,7 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() displays artifacts table with file status", {
+test_that("status() displays state information for scripts", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -247,40 +249,36 @@ analysis <- analyze(processed)
 write.csv(analysis, file_out("analysis.csv"))
 ', file = script2)
   
-  # Create some of the input files (to test Present/Missing status)
+  # Create some of the input files 
   input_file <- file.path(project_dir, "input.csv")
   cat("col1,col2\n1,2\n3,4\n", file = input_file)
   
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should display both scripts and artifacts tables
+  # Test: status() should display scripts with state information
   output <- capture.output(status())
   
   # Should contain Scripts section
   expect_true(any(grepl("Scripts", output)))
   
-  # Should contain Artifacts section
-  expect_true(any(grepl("Artifacts", output)))
+  # Should NOT contain Artifacts section (removed)
+  expect_false(any(grepl("Artifacts", output)))
   
-  # Should show artifact names
-  expect_true(any(grepl("input.csv", output)))
-  expect_true(any(grepl("output.csv", output)))
-  expect_true(any(grepl("analysis.csv", output)))
+  # Should show script names
+  expect_true(any(grepl("process.R", output)))
+  expect_true(any(grepl("analyze.R", output)))
   
-  # Should show file status
-  expect_true(any(grepl("Present", output)))
-  expect_true(any(grepl("Missing", output)))
-  
-  # Should show Status column header
-  expect_true(any(grepl("Status", output)))
+  # Should show State column and state values
+  expect_true(any(grepl("State", output)))
+  expect_true(any(grepl("Fresh|Stale", output)))
   
   # Cleanup
   setwd(old_wd)
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() shows two separate tables for scripts and artifacts", {
+test_that("status() shows only scripts table (no artifacts table)", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -303,26 +301,23 @@ write.csv(data, file_out("result.csv"))
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should show distinct sections
+  # Test: status() should show only scripts section
   output <- capture.output(status())
   
   # Should have Scripts section
   scripts_start <- which(grepl("Scripts", output))
   expect_true(length(scripts_start) > 0)
   
-  # Should have Artifacts section
+  # Should NOT have Artifacts section (removed)
   artifacts_start <- which(grepl("Artifacts", output))
-  expect_true(length(artifacts_start) > 0)
-  
-  # Scripts section should come before Artifacts section
-  expect_true(scripts_start[1] < artifacts_start[1])
+  expect_true(length(artifacts_start) == 0)
   
   # Cleanup
   setwd(old_wd)
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() displays scripts and artifacts in topological order", {
+test_that("status() displays scripts in topological order", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -373,20 +368,8 @@ write.csv(processed, file_out("step1.csv"))
   expect_true(c_line < b_line)
   expect_true(b_line < a_line)
   
-  # Find the Artifacts section start
-  artifacts_start <- which(grepl("Artifacts:", output))[1]
-
-  # Find artifacts in the artifacts section only
-  artifacts_lines <- output[(artifacts_start + 1):length(output)]
-  raw_line <- which(grepl("raw.csv", artifacts_lines))[1] + artifacts_start
-  step1_line <- which(grepl("step1.csv", artifacts_lines))[1] + artifacts_start
-  step2_line <- which(grepl("step2.csv", artifacts_lines))[1] + artifacts_start
-  final_line <- which(grepl("final.csv", artifacts_lines))[1] + artifacts_start
-
-  # Artifacts should appear in dependency order
-  expect_true(raw_line < step1_line)
-  expect_true(step1_line < step2_line)
-  expect_true(step2_line < final_line)
+  # Should show State column for all scripts
+  expect_true(any(grepl("State", output)))
   
   # Cleanup
   setwd(old_wd)
