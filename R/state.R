@@ -52,10 +52,14 @@ read_state <- function(state_file) {
   # Add each file as a list element
   for (i in seq_len(nrow(state_data))) {
     file_path <- state_data$file[i]
+    
+    # Compute status based on staleness
+    computed_status <- if (file_path %in% stale_files) "stale" else "fresh"
+    
     result[[file_path]] <- list(
       checksum = state_data$checksum[i],
       last_modified = state_data$last_modified[i], 
-      status = state_data$status[i],
+      status = computed_status,
       current_checksum = current_checksums[file_path]
     )
   }
@@ -95,7 +99,6 @@ write_state <- function(state_file, parse_data) {
     file = all_files,
     checksum = character(length(all_files)),
     last_modified = character(length(all_files)),
-    status = rep("fresh", length(all_files)),
     stringsAsFactors = FALSE
   )
 

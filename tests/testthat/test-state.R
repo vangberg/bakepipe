@@ -5,10 +5,10 @@ test_that("read_state() reads existing state file correctly", {
   
   # Create test state file content
   state_content <- c(
-    '"file","checksum","last_modified","status"',
-    '"script1.R","abc123","2023-01-01 10:00:00","fresh"',
-    '"data.csv","def456","2023-01-01 09:00:00","fresh"',
-    '"output.csv","ghi789","2023-01-01 11:00:00","fresh"'
+    '"file","checksum","last_modified"',
+    '"script1.R","abc123","2023-01-01 10:00:00"',
+    '"data.csv","def456","2023-01-01 09:00:00"',
+    '"output.csv","ghi789","2023-01-01 11:00:00"'
   )
   writeLines(state_content, state_file)
   
@@ -23,7 +23,8 @@ test_that("read_state() reads existing state file correctly", {
   # Check specific entries are lists with correct info
   expect_type(state_obj[["script1.R"]], "list")
   expect_equal(state_obj[["script1.R"]]$checksum, "abc123")
-  expect_equal(state_obj[["script1.R"]]$status, "fresh")
+  # Status should be "stale" since the file doesn't exist with that checksum
+  expect_equal(state_obj[["script1.R"]]$status, "stale")
   
   # Clean up
   unlink(state_file)
@@ -60,10 +61,10 @@ test_that("read_state() computes current checksums and detects stale files", {
   # Create state file with old checksums (intentionally wrong)
   state_file <- file.path(temp_dir, ".bakepipe.state")
   state_content <- c(
-    '"file","checksum","last_modified","status"',
-    '"test.R","old_checksum","2023-01-01 10:00:00","fresh"',
-    '"input.csv","old_checksum","2023-01-01 09:00:00","fresh"',
-    '"output.csv","old_checksum","2023-01-01 11:00:00","fresh"'
+    '"file","checksum","last_modified"',
+    '"test.R","old_checksum","2023-01-01 10:00:00"',
+    '"input.csv","old_checksum","2023-01-01 09:00:00"',
+    '"output.csv","old_checksum","2023-01-01 11:00:00"'
   )
   writeLines(state_content, state_file)
   
@@ -182,7 +183,7 @@ test_that("write_state() creates correct state file format", {
   expect_true("data.csv" %in% names(state_obj))
   expect_true("result.txt" %in% names(state_obj))
   
-  # All files should be marked as fresh
+  # All files should be marked as fresh (since they exist and match their checksums)
   expect_equal(state_obj[["script.R"]]$status, "fresh")
   expect_equal(state_obj[["data.csv"]]$status, "fresh")
   expect_equal(state_obj[["result.txt"]]$status, "fresh")
@@ -252,10 +253,10 @@ test_that("read_state() returns list format with script names as keys", {
   
   # Create test state file content
   state_content <- c(
-    '"file","checksum","last_modified","status"',
-    '"script1.R","abc123","2023-01-01 10:00:00","fresh"',
-    '"data.csv","def456","2023-01-01 09:00:00","fresh"',
-    '"output.csv","ghi789","2023-01-01 11:00:00","fresh"'
+    '"file","checksum","last_modified"',
+    '"script1.R","abc123","2023-01-01 10:00:00"',
+    '"data.csv","def456","2023-01-01 09:00:00"',
+    '"output.csv","ghi789","2023-01-01 11:00:00"'
   )
   writeLines(state_content, state_file)
   
@@ -273,7 +274,8 @@ test_that("read_state() returns list format with script names as keys", {
   expect_true("last_modified" %in% names(script_info))
   expect_true("status" %in% names(script_info))
   expect_equal(script_info$checksum, "abc123")
-  expect_equal(script_info$status, "fresh")
+  # Status should be "stale" since the file doesn't exist with that checksum
+  expect_equal(script_info$status, "stale")
   
   # Should also contain non-script files
   expect_true("data.csv" %in% names(state_obj))
@@ -302,10 +304,10 @@ test_that("read_state() list format detects stale files correctly", {
   # Create state file with old checksums (intentionally wrong)
   state_file <- file.path(temp_dir, ".bakepipe.state")
   state_content <- c(
-    '"file","checksum","last_modified","status"',
-    '"test.R","old_checksum","2023-01-01 10:00:00","fresh"',
-    '"input.csv","old_checksum","2023-01-01 09:00:00","fresh"',
-    '"output.csv","old_checksum","2023-01-01 11:00:00","fresh"'
+    '"file","checksum","last_modified"',
+    '"test.R","old_checksum","2023-01-01 10:00:00"',
+    '"input.csv","old_checksum","2023-01-01 09:00:00"',
+    '"output.csv","old_checksum","2023-01-01 11:00:00"'
   )
   writeLines(state_content, state_file)
   
