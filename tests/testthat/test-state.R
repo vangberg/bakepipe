@@ -16,14 +16,14 @@ test_that("read_state() reads existing state file correctly", {
   state_obj <- read_state(state_file)
   
   expect_type(state_obj, "list")
-  expect_true("files" %in% names(state_obj))
-  expect_equal(nrow(state_obj$files), 3)
-  expect_true(all(c("file", "checksum", "last_modified", "status") %in% names(state_obj$files)))
+  expect_true("script1.R" %in% names(state_obj))
+  expect_true("data.csv" %in% names(state_obj))
+  expect_true("output.csv" %in% names(state_obj))
   
-  # Check specific entries
-  expect_true("script1.R" %in% state_obj$files$file)
-  expect_true("data.csv" %in% state_obj$files$file)
-  expect_true("output.csv" %in% state_obj$files$file)
+  # Check specific entries are lists with correct info
+  expect_type(state_obj[["script1.R"]], "list")
+  expect_equal(state_obj[["script1.R"]]$checksum, "abc123")
+  expect_equal(state_obj[["script1.R"]]$status, "fresh")
   
   # Clean up
   unlink(state_file)
@@ -36,8 +36,8 @@ test_that("read_state() handles missing state file", {
   state_obj <- read_state(non_existent_file)
   
   expect_type(state_obj, "list")
-  expect_true("files" %in% names(state_obj))
-  expect_equal(nrow(state_obj$files), 0)
+  expect_true("stale_files" %in% names(state_obj))
+  expect_equal(length(state_obj$stale_files), 0)
 })
 
 test_that("read_state() computes current checksums and detects stale files", {
@@ -70,7 +70,6 @@ test_that("read_state() computes current checksums and detects stale files", {
   state_obj <- read_state(state_file)
   
   # Should detect files as stale due to checksum mismatch
-  expect_true("current_checksums" %in% names(state_obj))
   expect_true("stale_files" %in% names(state_obj))
   
   # All files should be detected as stale due to checksum mismatch
@@ -177,18 +176,21 @@ test_that("write_state() creates correct state file format", {
   # Check file was created
   expect_true(file.exists(state_file))
   
-  # Read and verify content
-  state_data <- read.csv(state_file, stringsAsFactors = FALSE)
-  expect_true(all(c("file", "checksum", "last_modified", "status") %in% names(state_data)))
-  expect_true("script.R" %in% state_data$file)
-  expect_true("data.csv" %in% state_data$file)
-  expect_true("result.txt" %in% state_data$file)
+  # Read and verify content using read_state()
+  state_obj <- read_state(state_file)
+  expect_true("script.R" %in% names(state_obj))
+  expect_true("data.csv" %in% names(state_obj))
+  expect_true("result.txt" %in% names(state_obj))
   
   # All files should be marked as fresh
-  expect_true(all(state_data$status == "fresh"))
+  expect_equal(state_obj[["script.R"]]$status, "fresh")
+  expect_equal(state_obj[["data.csv"]]$status, "fresh")
+  expect_equal(state_obj[["result.txt"]]$status, "fresh")
   
   # Checksums should be valid (non-empty)
-  expect_true(all(nchar(state_data$checksum) > 0))
+  expect_true(nchar(state_obj[["script.R"]]$checksum) > 0)
+  expect_true(nchar(state_obj[["data.csv"]]$checksum) > 0)
+  expect_true(nchar(state_obj[["result.txt"]]$checksum) > 0)
   
   # Clean up
   unlink(c(test_script, test_input, test_output, state_file))
@@ -233,9 +235,93 @@ test_that("state functions work together for round-trip", {
   state_obj <- read_state(".bakepipe.state")
   
   expect_equal(length(state_obj$stale_files), 0)
-  expect_true(all(state_obj$files$status == "fresh"))
+  # Check that files exist in the list format
+  expect_true("process.R" %in% names(state_obj))
+  expect_true("input.csv" %in% names(state_obj))
+  expect_equal(state_obj[["process.R"]]$status, "fresh")
   
   # Clean up
   setwd(old_wd)
   unlink(file.path(temp_dir, c("process.R", "input.csv", "output.csv", ".bakepipe.state")))
+})
+
+test_that("read_state() returns list format with script names as keys", {
+  # Create temporary directory and state file
+  temp_dir <- tempdir()
+  state_file <- file.path(temp_dir, ".bakepipe.state")
+  
+  # Create test state file content
+  state_content <- c(
+    '"file","checksum","last_modified","status"',
+    '"script1.R","abc123","2023-01-01 10:00:00","fresh"',
+    '"data.csv","def456","2023-01-01 09:00:00","fresh"',
+    '"output.csv","ghi789","2023-01-01 11:00:00","fresh"'
+  )
+  writeLines(state_content, state_file)
+  
+  # Test reading state file
+  state_obj <- read_state(state_file)
+  
+  # Should return list format with script names as keys
+  expect_type(state_obj, "list")
+  expect_true("script1.R" %in% names(state_obj))
+  expect_type(state_obj[["script1.R"]], "list")
+  
+  # Script entry should contain file information
+  script_info <- state_obj[["script1.R"]]
+  expect_true("checksum" %in% names(script_info))
+  expect_true("last_modified" %in% names(script_info))
+  expect_true("status" %in% names(script_info))
+  expect_equal(script_info$checksum, "abc123")
+  expect_equal(script_info$status, "fresh")
+  
+  # Should also contain non-script files
+  expect_true("data.csv" %in% names(state_obj))
+  expect_true("output.csv" %in% names(state_obj))
+  
+  # Should still have stale_files component for compatibility
+  expect_true("stale_files" %in% names(state_obj))
+  expect_type(state_obj$stale_files, "character")
+  
+  # Clean up
+  unlink(state_file)
+})
+
+test_that("read_state() list format detects stale files correctly", {
+  temp_dir <- tempdir()
+  
+  # Create test files with known content
+  test_script <- file.path(temp_dir, "test.R")
+  test_input <- file.path(temp_dir, "input.csv")
+  test_output <- file.path(temp_dir, "output.csv")
+  
+  writeLines(c("# Test script", "data <- read.csv('input.csv')", "write.csv(data, 'output.csv')"), test_script)
+  writeLines(c("name,value", "A,1", "B,2"), test_input)
+  writeLines(c("name,value", "A,1", "B,2"), test_output)
+  
+  # Create state file with old checksums (intentionally wrong)
+  state_file <- file.path(temp_dir, ".bakepipe.state")
+  state_content <- c(
+    '"file","checksum","last_modified","status"',
+    '"test.R","old_checksum","2023-01-01 10:00:00","fresh"',
+    '"input.csv","old_checksum","2023-01-01 09:00:00","fresh"',
+    '"output.csv","old_checksum","2023-01-01 11:00:00","fresh"'
+  )
+  writeLines(state_content, state_file)
+  
+  state_obj <- read_state(state_file)
+  
+  # Should detect files as stale due to checksum mismatch
+  expect_true("stale_files" %in% names(state_obj))
+  expect_true("test.R" %in% state_obj$stale_files)
+  expect_true("input.csv" %in% state_obj$stale_files)
+  expect_true("output.csv" %in% state_obj$stale_files)
+  
+  # Individual file entries should be accessible
+  expect_true("test.R" %in% names(state_obj))
+  expect_true("input.csv" %in% names(state_obj))
+  expect_true("output.csv" %in% names(state_obj))
+  
+  # Clean up
+  unlink(c(test_script, test_input, test_output, state_file))
 })

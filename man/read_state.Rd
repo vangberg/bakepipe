@@ -10,15 +10,11 @@ read_state(state_file)
 \item{state_file}{Path to the state file (typically ".bakepipe.state")}
 }
 \value{
-List containing:
-\itemize{
-\item{files: Data frame with file, checksum, last_modified, status columns}
-\item{current_checksums: Named vector of current file checksums}
-\item{stale_files: Character vector of files that are stale}
-}
+List where each file is a named element containing file information,
+plus a special 'stale_files' element containing character vector of stale files
 }
 \description{
-Reads the .bakepipe.state file and computes current checksums to determine
-which files are stale. A file is considered stale if its current checksum
-differs from the stored checksum.
+Reads the .bakepipe.state file and computes current checksums to
+determine which files are stale. A file is considered stale if its
+current checksum differs from the stored checksum.
 }

@@ -5,25 +5,13 @@
 #' current checksum differs from the stored checksum.
 #'
 #' @param state_file Path to the state file (typically ".bakepipe.state")
-#' @return List containing:
-#'   \itemize{
-#'     \item{files: Data frame with file, checksum, last_modified, status columns}
-#'     \item{current_checksums: Named vector of current file checksums}
-#'     \item{stale_files: Character vector of files that are stale}
-#'   }
-#' @export
+#' @return List where each file is a named element containing file information,
+#'   plus a special 'stale_files' element containing character vector of stale files
+#' @export  
 read_state <- function(state_file) {
   # Initialize empty state if file doesn't exist
   if (!file.exists(state_file)) {
     return(list(
-      files = data.frame(
-        file = character(0),
-        checksum = character(0),
-        last_modified = character(0),
-        status = character(0),
-        stringsAsFactors = FALSE
-      ),
-      current_checksums = character(0),
       stale_files = character(0)
     ))
   }
@@ -58,11 +46,24 @@ read_state <- function(state_file) {
     }
   }
 
-  list(
-    files = state_data,
-    current_checksums = current_checksums,
-    stale_files = unique(stale_files)
-  )
+  # Create result list with file names as keys
+  result <- list()
+  
+  # Add each file as a list element
+  for (i in seq_len(nrow(state_data))) {
+    file_path <- state_data$file[i]
+    result[[file_path]] <- list(
+      checksum = state_data$checksum[i],
+      last_modified = state_data$last_modified[i], 
+      status = state_data$status[i],
+      current_checksum = current_checksums[file_path]
+    )
+  }
+  
+  # Add stale_files for compatibility with existing code
+  result$stale_files <- unique(stale_files)
+  
+  result
 }
 
 #' Write pipeline state to disk
