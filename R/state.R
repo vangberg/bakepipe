@@ -64,10 +64,26 @@ read_state <- function(state_file) {
     )
   }
   
-  # Add stale_files for compatibility with existing code
-  result$stale_files <- unique(stale_files)
-  
   result
+}
+
+#' Extract stale files from state object
+#'
+#' Helper function to get list of stale files from the new state format.
+#'
+#' @param state_obj State object from read_state()
+#' @return Character vector of stale file names
+#' @keywords internal
+get_stale_files <- function(state_obj) {
+  stale_files <- character(0)
+  for (file_name in names(state_obj)) {
+    if (is.list(state_obj[[file_name]]) && 
+        !is.null(state_obj[[file_name]]$status) &&
+        state_obj[[file_name]]$status == "stale") {
+      stale_files <- c(stale_files, file_name)
+    }
+  }
+  stale_files
 }
 
 #' Write pipeline state to disk

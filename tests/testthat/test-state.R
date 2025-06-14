@@ -37,8 +37,9 @@ test_that("read_state() handles missing state file", {
   state_obj <- read_state(non_existent_file)
   
   expect_type(state_obj, "list")
-  expect_true("stale_files" %in% names(state_obj))
-  expect_equal(length(state_obj$stale_files), 0)
+  # No stale files when state file doesn't exist
+  stale_files <- get_stale_files(state_obj)
+  expect_equal(length(stale_files), 0)
 })
 
 test_that("read_state() computes current checksums and detects stale files", {
@@ -71,12 +72,12 @@ test_that("read_state() computes current checksums and detects stale files", {
   state_obj <- read_state(state_file)
   
   # Should detect files as stale due to checksum mismatch
-  expect_true("stale_files" %in% names(state_obj))
+  stale_files <- get_stale_files(state_obj)
   
   # All files should be detected as stale due to checksum mismatch
-  expect_true("test.R" %in% state_obj$stale_files)
-  expect_true("input.csv" %in% state_obj$stale_files)
-  expect_true("output.csv" %in% state_obj$stale_files)
+  expect_true("test.R" %in% stale_files)
+  expect_true("input.csv" %in% stale_files)
+  expect_true("output.csv" %in% stale_files)
   
   # Clean up
   unlink(c(test_script, test_input, test_output, state_file))
@@ -106,8 +107,9 @@ test_that("script staleness propagates when input file changes (integration test
   
   # Read state - only the file should be marked stale by read_state()
   state_obj <- read_state(".bakepipe.state")
-  expect_true("input.csv" %in% state_obj$stale_files)
-  expect_false("process.R" %in% state_obj$stale_files)  # Script staleness handled by compute_stale_nodes
+  stale_files <- get_stale_files(state_obj)
+  expect_true("input.csv" %in% stale_files)
+  expect_false("process.R" %in% stale_files)  # Script staleness handled by compute_stale_nodes
   
   # Create graph to test script staleness propagation
   graph_obj <- graph(parse_data, state_obj)
@@ -141,8 +143,9 @@ test_that("script staleness propagates when output file changes (integration tes
   
   # Read state - only the file should be marked stale by read_state()
   state_obj <- read_state(".bakepipe.state")
-  expect_true("report.txt" %in% state_obj$stale_files)
-  expect_false("generate.R" %in% state_obj$stale_files)  # Script staleness handled by compute_stale_nodes
+  stale_files <- get_stale_files(state_obj)
+  expect_true("report.txt" %in% stale_files)
+  expect_false("generate.R" %in% stale_files)  # Script staleness handled by compute_stale_nodes
   
   # Create graph to test script staleness propagation
   graph_obj <- graph(parse_data, state_obj)
@@ -235,7 +238,8 @@ test_that("state functions work together for round-trip", {
   # Read state back immediately - should be fresh
   state_obj <- read_state(".bakepipe.state")
   
-  expect_equal(length(state_obj$stale_files), 0)
+  stale_files <- get_stale_files(state_obj)
+  expect_equal(length(stale_files), 0)
   # Check that files exist in the list format
   expect_true("process.R" %in% names(state_obj))
   expect_true("input.csv" %in% names(state_obj))
@@ -281,9 +285,9 @@ test_that("read_state() returns list format with script names as keys", {
   expect_true("data.csv" %in% names(state_obj))
   expect_true("output.csv" %in% names(state_obj))
   
-  # Should still have stale_files component for compatibility
-  expect_true("stale_files" %in% names(state_obj))
-  expect_type(state_obj$stale_files, "character")
+  # Should be able to extract stale files
+  stale_files <- get_stale_files(state_obj)
+  expect_type(stale_files, "character")
   
   # Clean up
   unlink(state_file)
@@ -314,10 +318,10 @@ test_that("read_state() list format detects stale files correctly", {
   state_obj <- read_state(state_file)
   
   # Should detect files as stale due to checksum mismatch
-  expect_true("stale_files" %in% names(state_obj))
-  expect_true("test.R" %in% state_obj$stale_files)
-  expect_true("input.csv" %in% state_obj$stale_files)
-  expect_true("output.csv" %in% state_obj$stale_files)
+  stale_files <- get_stale_files(state_obj)
+  expect_true("test.R" %in% stale_files)
+  expect_true("input.csv" %in% stale_files)
+  expect_true("output.csv" %in% stale_files)
   
   # Individual file entries should be accessible
   expect_true("test.R" %in% names(state_obj))

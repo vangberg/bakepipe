@@ -302,7 +302,8 @@ compute_stale_nodes <- function(graph_obj, state_obj, parse_data) {
   stale_nodes <- nodes
 
   # Pass 2: Mark fresh nodes based on state_obj
-  if (length(state_obj$stale_files) == 0) {
+  stale_files <- get_stale_files(state_obj)
+  if (length(stale_files) == 0) {
     # If no stale files, all scripts are fresh
     stale_nodes <- character(0)
   } else {
@@ -314,14 +315,14 @@ compute_stale_nodes <- function(graph_obj, state_obj, parse_data) {
       script_is_stale <- FALSE
 
       # Check if script itself is stale
-      if (script_name %in% state_obj$stale_files) {
+      if (script_name %in% stale_files) {
         script_is_stale <- TRUE
       }
 
       # Check if any input files are stale
       if (!script_is_stale) {
         for (input_file in script_data$inputs) {
-          if (input_file %in% state_obj$stale_files) {
+          if (input_file %in% stale_files) {
             script_is_stale <- TRUE
             break
           }
@@ -331,7 +332,7 @@ compute_stale_nodes <- function(graph_obj, state_obj, parse_data) {
       # Check if any output files are stale (manually modified)
       if (!script_is_stale) {
         for (output_file in script_data$outputs) {
-          if (output_file %in% state_obj$stale_files) {
+          if (output_file %in% stale_files) {
             script_is_stale <- TRUE
             break
           }

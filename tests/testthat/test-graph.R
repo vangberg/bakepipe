@@ -203,12 +203,14 @@ test_that("graph() with state_obj marks nodes as stale correctly", {
   
   # Create state object with mixed fresh/stale files
   state_obj <- list(
-    files = data.frame(
-      file = c("script1.R", "input.csv", "intermediate.csv", "script2.R", "output.csv", "script3.R", "other.csv", "final.csv"),
-      status = c("fresh", "stale", "fresh", "fresh", "fresh", "fresh", "fresh", "fresh"),
-      stringsAsFactors = FALSE
-    ),
-    stale_files = c("input.csv")  # Only input.csv is stale
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "input.csv" = list(checksum = "b1", last_modified = "2023-01-01", status = "stale", current_checksum = "b2"),
+    "intermediate.csv" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "script2.R" = list(checksum = "d1", last_modified = "2023-01-01", status = "fresh", current_checksum = "d1"),
+    "output.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1"),
+    "script3.R" = list(checksum = "f1", last_modified = "2023-01-01", status = "fresh", current_checksum = "f1"),
+    "other.csv" = list(checksum = "g1", last_modified = "2023-01-01", status = "fresh", current_checksum = "g1"),
+    "final.csv" = list(checksum = "h1", last_modified = "2023-01-01", status = "fresh", current_checksum = "h1")
   )
   
   graph_obj <- graph(parse_data, state_obj)
@@ -246,12 +248,11 @@ test_that("graph() marks all nodes as fresh when no stale files", {
   
   # State object with no stale files
   state_obj <- list(
-    files = data.frame(
-      file = c("script1.R", "script2.R", "input.csv", "output.csv", "final.csv"),
-      status = c("fresh", "fresh", "fresh", "fresh", "fresh"),
-      stringsAsFactors = FALSE
-    ),
-    stale_files = character(0)
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "script2.R" = list(checksum = "b1", last_modified = "2023-01-01", status = "fresh", current_checksum = "b1"),
+    "input.csv" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "output.csv" = list(checksum = "d1", last_modified = "2023-01-01", status = "fresh", current_checksum = "d1"),
+    "final.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1")
   )
   
   graph_obj <- graph(parse_data, state_obj)
@@ -268,12 +269,11 @@ test_that("graph() marks nodes as stale when files not in state", {
   
   # State object missing some files (they should be considered stale)
   state_obj <- list(
-    files = data.frame(
-      file = c("script1.R"),
-      status = c("fresh"),
-      stringsAsFactors = FALSE
-    ),
-    stale_files = c("script2.R", "input.csv", "output.csv", "final.csv")  # Missing files are stale
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "script2.R" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_),
+    "input.csv" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_),
+    "output.csv" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_),
+    "final.csv" = list(checksum = "missing", last_modified = "2023-01-01", status = "stale", current_checksum = NA_character_)
   )
   
   graph_obj <- graph(parse_data, state_obj)
@@ -293,12 +293,13 @@ test_that("graph() propagates staleness correctly via DFS", {
   
   # State where only script1.R is stale
   state_obj <- list(
-    files = data.frame(
-      file = c("script1.R", "script2.R", "script3.R", "raw.csv", "clean.csv", "processed.csv", "final.csv"),
-      status = c("stale", "fresh", "fresh", "fresh", "fresh", "fresh", "fresh"),
-      stringsAsFactors = FALSE
-    ),
-    stale_files = c("script1.R")
+    "script1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "stale", current_checksum = "a2"),
+    "script2.R" = list(checksum = "b1", last_modified = "2023-01-01", status = "fresh", current_checksum = "b1"),
+    "script3.R" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "raw.csv" = list(checksum = "d1", last_modified = "2023-01-01", status = "fresh", current_checksum = "d1"),
+    "clean.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1"),
+    "processed.csv" = list(checksum = "f1", last_modified = "2023-01-01", status = "fresh", current_checksum = "f1"),
+    "final.csv" = list(checksum = "g1", last_modified = "2023-01-01", status = "fresh", current_checksum = "g1")
   )
   
   graph_obj <- graph(parse_data, state_obj)
@@ -319,12 +320,14 @@ test_that("graph() handles disconnected components correctly", {
   
   # Only pipeline1 has stale data
   state_obj <- list(
-    files = data.frame(
-      file = c("pipeline1_step1.R", "pipeline1_step2.R", "pipeline2_step1.R", "data1.csv", "result1.csv", "final1.csv", "data2.csv", "final2.csv"),
-      status = c("fresh", "fresh", "fresh", "stale", "fresh", "fresh", "fresh", "fresh"),
-      stringsAsFactors = FALSE
-    ),
-    stale_files = c("data1.csv")
+    "pipeline1_step1.R" = list(checksum = "a1", last_modified = "2023-01-01", status = "fresh", current_checksum = "a1"),
+    "pipeline1_step2.R" = list(checksum = "b1", last_modified = "2023-01-01", status = "fresh", current_checksum = "b1"),
+    "pipeline2_step1.R" = list(checksum = "c1", last_modified = "2023-01-01", status = "fresh", current_checksum = "c1"),
+    "data1.csv" = list(checksum = "d1", last_modified = "2023-01-01", status = "stale", current_checksum = "d2"),
+    "result1.csv" = list(checksum = "e1", last_modified = "2023-01-01", status = "fresh", current_checksum = "e1"),
+    "final1.csv" = list(checksum = "f1", last_modified = "2023-01-01", status = "fresh", current_checksum = "f1"),
+    "data2.csv" = list(checksum = "g1", last_modified = "2023-01-01", status = "fresh", current_checksum = "g1"),
+    "final2.csv" = list(checksum = "h1", last_modified = "2023-01-01", status = "fresh", current_checksum = "h1")
   )
   
   graph_obj <- graph(parse_data, state_obj)
