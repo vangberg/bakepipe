@@ -282,12 +282,12 @@ find_descendants <- function(graph_obj, node) {
   sort(unique(visited))
 }
 
-#' Compute stale nodes using 3-pass algorithm
+#' Compute stale nodes using reworked algorithm
 #'
-#' Implements the 3-pass staleness marking algorithm:
-#' 1. Mark all nodes as stale initially
-#' 2. Iterate over state_obj, mark fresh nodes
-#' 3. DFS to propagate staleness to descendants
+#' Implements the reworked staleness marking algorithm:
+#' 1. Get list of all fresh files from state_obj
+#' 2. Set stale nodes as nodes that are affected by non-fresh files
+#' 3. Iterate stale nodes, mark descendants as stale
 #'
 #' @param graph_obj Graph object with nodes and edges
 #' @param state_obj State object from read_state()
@@ -296,59 +296,47 @@ find_descendants <- function(graph_obj, node) {
 #' @keywords internal
 compute_stale_nodes <- function(graph_obj, state_obj, parse_data) {
   nodes <- graph_obj$nodes
-  edges <- graph_obj$edges
 
-  # Pass 1: Mark all nodes as stale initially
-  stale_nodes <- nodes
+  # Step 1: Get list of all fresh files from state_obj
+  fresh_files <- get_fresh_files(state_obj)
 
-  # Pass 2: Mark fresh nodes based on state_obj
-  stale_files <- get_stale_files(state_obj)
-  if (length(stale_files) == 0) {
-    # If no stale files, all scripts are fresh
-    stale_nodes <- character(0)
-  } else {
-    # Scripts are fresh if they are not directly affected by stale files
-    fresh_scripts <- character(0)
+  # Step 2: Find nodes that are affected by non-fresh files
+  stale_nodes <- character(0)
+  for (script_name in nodes) {
+    script_data <- parse_data[[script_name]]
+    script_is_stale <- FALSE
 
-    for (script_name in nodes) {
-      script_data <- parse_data[[script_name]]
-      script_is_stale <- FALSE
+    # Check if script itself is not fresh
+    if (!script_name %in% fresh_files) {
+      script_is_stale <- TRUE
+    }
 
-      # Check if script itself is stale
-      if (script_name %in% stale_files) {
-        script_is_stale <- TRUE
-      }
-
-      # Check if any input files are stale
-      if (!script_is_stale) {
-        for (input_file in script_data$inputs) {
-          if (input_file %in% stale_files) {
-            script_is_stale <- TRUE
-            break
-          }
+    # Check if any input files are not fresh
+    if (!script_is_stale) {
+      for (input_file in script_data$inputs) {
+        if (!input_file %in% fresh_files) {
+          script_is_stale <- TRUE
+          break
         }
-      }
-
-      # Check if any output files are stale (manually modified)
-      if (!script_is_stale) {
-        for (output_file in script_data$outputs) {
-          if (output_file %in% stale_files) {
-            script_is_stale <- TRUE
-            break
-          }
-        }
-      }
-
-      if (!script_is_stale) {
-        fresh_scripts <- c(fresh_scripts, script_name)
       }
     }
 
-    # Remove fresh scripts from stale list
-    stale_nodes <- setdiff(stale_nodes, fresh_scripts)
+    # Check if any output files are not fresh (manually modified)
+    if (!script_is_stale) {
+      for (output_file in script_data$outputs) {
+        if (!output_file %in% fresh_files) {
+          script_is_stale <- TRUE
+          break
+        }
+      }
+    }
+
+    if (script_is_stale) {
+      stale_nodes <- c(stale_nodes, script_name)
+    }
   }
 
-  # Pass 3: DFS to propagate staleness to descendants
+  # Step 3: Iterate stale nodes, mark descendants as stale
   initial_stale <- stale_nodes
 
   for (stale_script in initial_stale) {

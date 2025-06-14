@@ -2,7 +2,7 @@
 % Please edit documentation in R/graph.R
 \name{compute_stale_nodes}
 \alias{compute_stale_nodes}
-\title{Compute stale nodes using 3-pass algorithm}
+\title{Compute stale nodes using reworked algorithm}
 \usage{
 compute_stale_nodes(graph_obj, state_obj, parse_data)
 }
@@ -17,11 +17,11 @@ compute_stale_nodes(graph_obj, state_obj, parse_data)
 Character vector of stale script names
 }
 \description{
-Implements the 3-pass staleness marking algorithm:
+Implements the reworked staleness marking algorithm:
 \enumerate{
-\item Mark all nodes as stale initially
-\item Iterate over state_obj, mark fresh nodes
-\item DFS to propagate staleness to descendants
+\item Get list of all fresh files from state_obj
+\item Set stale nodes as nodes that are affected by non-fresh files
+\item Iterate stale nodes, mark descendants as stale
 }
 }
 \keyword{internal}

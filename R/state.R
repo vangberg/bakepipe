@@ -86,6 +86,25 @@ get_stale_files <- function(state_obj) {
   stale_files
 }
 
+#' Extract fresh files from state object
+#'
+#' Helper function to get list of fresh files from the new state format.
+#'
+#' @param state_obj State object from read_state()
+#' @return Character vector of fresh file names
+#' @keywords internal
+get_fresh_files <- function(state_obj) {
+  fresh_files <- character(0)
+  for (file_name in names(state_obj)) {
+    if (is.list(state_obj[[file_name]]) &&
+          !is.null(state_obj[[file_name]]$status) &&
+          state_obj[[file_name]]$status == "fresh") {
+      fresh_files <- c(fresh_files, file_name)
+    }
+  }
+  fresh_files
+}
+
 #' Write pipeline state to disk
 #'
 #' Writes the current state of all files in the pipeline to a CSV file.
