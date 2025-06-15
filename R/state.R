@@ -5,14 +5,15 @@
 #' current checksum differs from the stored checksum.
 #'
 #' @param state_file Path to the state file (typically ".bakepipe.state")
-#' @return List where each file is a named element containing file information,
-#'   plus a special 'stale_files' element containing character vector of stale files
-#' @export  
+#' @return Data frame with columns 'file' and 'stale' (logical)
+#' @export
 read_state <- function(state_file) {
   # Initialize empty state if file doesn't exist
   if (!file.exists(state_file)) {
-    return(list(
-      stale_files = character(0)
+    return(data.frame(
+      file = character(0),
+      stale = logical(0),
+      stringsAsFactors = FALSE
     ))
   }
 
@@ -30,79 +31,22 @@ read_state <- function(state_file) {
   }
 
   # Determine which files are stale based on checksum comparison
-  stale_files <- character(0)
+  stale <- logical(nrow(state_data))
   for (i in seq_len(nrow(state_data))) {
     file_path <- state_data$file[i]
     stored_checksum <- state_data$checksum[i]
     current_checksum <- current_checksums[file_path]
 
     # File is stale if checksum differs or file is missing
-    # Don't mark missing files as stale if they were stored as "missing"
-    if (is.na(current_checksum) && stored_checksum != "missing") {
-      stale_files <- c(stale_files, file_path)
-    } else if (!is.na(current_checksum) &&
-                 current_checksum != stored_checksum) {
-      stale_files <- c(stale_files, file_path)
-    }
+    stale[i] <- is.na(current_checksum) || current_checksum != stored_checksum
   }
 
-  # Create result list with file names as keys
-  result <- list()
-  
-  # Add each file as a list element
-  for (i in seq_len(nrow(state_data))) {
-    file_path <- state_data$file[i]
-    
-    # Compute status based on staleness
-    computed_status <- if (file_path %in% stale_files) "stale" else "fresh"
-    
-    result[[file_path]] <- list(
-      checksum = state_data$checksum[i],
-      last_modified = state_data$last_modified[i], 
-      status = computed_status,
-      current_checksum = current_checksums[file_path]
-    )
-  }
-  
-  result
-}
-
-#' Extract stale files from state object
-#'
-#' Helper function to get list of stale files from the new state format.
-#'
-#' @param state_obj State object from read_state()
-#' @return Character vector of stale file names
-#' @keywords internal
-get_stale_files <- function(state_obj) {
-  stale_files <- character(0)
-  for (file_name in names(state_obj)) {
-    if (is.list(state_obj[[file_name]]) && 
-        !is.null(state_obj[[file_name]]$status) &&
-        state_obj[[file_name]]$status == "stale") {
-      stale_files <- c(stale_files, file_name)
-    }
-  }
-  stale_files
-}
-
-#' Extract fresh files from state object
-#'
-#' Helper function to get list of fresh files from the new state format.
-#'
-#' @param state_obj State object from read_state()
-#' @return Character vector of fresh file names
-#' @keywords internal
-get_fresh_files <- function(state_obj) {
-  fresh_files <- character(0)
-  for (file_name in names(state_obj)) {
-    if (is.list(state_obj[[file_name]]) &&
-          !is.null(state_obj[[file_name]]$status) &&
-          state_obj[[file_name]]$status == "fresh") {
-      fresh_files <- c(fresh_files, file_name)
-    }
-  }
-  fresh_files
+  # Return data frame with file and stale columns
+  data.frame(
+    file = state_data$file,
+    stale = stale,
+    stringsAsFactors = FALSE
+  )
 }
 
 #' Write pipeline state to disk
@@ -111,15 +55,15 @@ get_fresh_files <- function(state_obj) {
 #' This includes scripts and all their input/output files with their
 #' current checksums and timestamps.
 #'
-#' @param state_file Path to the state file to write 
+#' @param state_file Path to the state file to write
 #'   (typically ".bakepipe.state")
-#' @param parse_data Named list from parse() function containing 
+#' @param parse_data Named list from parse() function containing
 #'   script dependencies
 #' @export
 write_state <- function(state_file, parse_data) {
   # Collect all unique files from parse_data
   all_files <- character(0)
-  
+
   for (script_name in names(parse_data)) {
     script_data <- parse_data[[script_name]]
     all_files <- c(all_files, script_name)
@@ -146,8 +90,8 @@ write_state <- function(state_file, parse_data) {
       file_info <- file.info(file_path)
       state_data$last_modified[i] <- as.character(file_info$mtime)
     } else {
-      # For missing files, use placeholder checksum and current timestamp
-      state_data$checksum[i] <- "missing"
+      # For missing files, use NA checksum and current timestamp
+      state_data$checksum[i] <- NA_character_
       state_data$last_modified[i] <- as.character(Sys.time())
     }
   }

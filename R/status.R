@@ -48,8 +48,8 @@ display_scripts_table <- function(pipeline_data) {
 
   # Determine state for each script
   state_list <- lapply(scripts, function(script) {
-    if ("stale_nodes" %in% names(graph_obj) &&
-          script %in% graph_obj$stale_nodes) {
+    script_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == script]
+    if (length(script_stale) > 0 && script_stale) {
       "Stale"
     } else {
       "Fresh"

@@ -30,14 +30,10 @@ run <- function() {
   all_scripts <- topo_order[topo_order %in% script_names]
 
   # Only run stale scripts for incremental execution
-  if ("stale_nodes" %in% names(graph_obj)) {
-    scripts_to_run <- all_scripts[all_scripts %in% graph_obj$stale_nodes]
-    scripts_to_skip <- all_scripts[!all_scripts %in% graph_obj$stale_nodes]
-  } else {
-    # If no state information, run all scripts
-    scripts_to_run <- all_scripts
-    scripts_to_skip <- character(0)
-  }
+  # Get stale scripts from the nodes data frame
+  stale_scripts <- graph_obj$nodes$file[graph_obj$nodes$stale]
+  scripts_to_run <- all_scripts[all_scripts %in% stale_scripts]
+  scripts_to_skip <- all_scripts[!all_scripts %in% stale_scripts]
 
   # Calculate max script name width for alignment
   max_width <- max(nchar(all_scripts))

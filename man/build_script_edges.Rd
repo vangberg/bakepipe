@@ -4,16 +4,18 @@
 \alias{build_script_edges}
 \title{Build edges between scripts through file dependencies}
 \usage{
-build_script_edges(parse_data)
+build_script_edges(parse_data, state_obj = NULL)
 }
 \arguments{
 \item{parse_data}{Named list from parse() function}
+
+\item{state_obj}{Optional state object from read_state()}
 }
 \value{
-Data frame with 'from', 'to', and 'file' columns
+Data frame with 'from', 'to', 'file', and 'stale' columns
 }
 \description{
 Creates edges where scripts are connected if one produces a file that
-another consumes.
+another consumes. Includes staleness information for each edge.
 }
 \keyword{internal}

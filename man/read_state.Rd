@@ -10,8 +10,7 @@ read_state(state_file)
 \item{state_file}{Path to the state file (typically ".bakepipe.state")}
 }
 \value{
-List where each file is a named element containing file information,
-plus a special 'stale_files' element containing character vector of stale files
+Data frame with columns 'file' and 'stale' (logical)
 }
 \description{
 Reads the .bakepipe.state file and computes current checksums to

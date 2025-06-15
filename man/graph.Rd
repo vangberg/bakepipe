@@ -10,15 +10,14 @@ graph(parse_data, state_obj = NULL)
 \item{parse_data}{Named list from parse() function, where each element
 represents a script with 'inputs' and 'outputs' character vectors.}
 
-\item{state_obj}{Optional. List from read_state() function containing file
-status information. If provided, will mark nodes as stale/fresh.}
+\item{state_obj}{Optional. Data frame from read_state() function with 'file'
+and 'stale' columns. If provided, will mark nodes as stale/fresh.}
 }
 \value{
 List containing:
 \itemize{
-\item{nodes: Character vector of script names}
-\item{edges: Data frame with 'from', 'to', and 'file' columns}
-\item{stale_nodes: Character vector of stale script names (if state_obj provided)}
+\item{nodes: Data frame with 'file' and 'stale' columns}
+\item{edges: Data frame with 'from', 'to', 'file', and 'stale' columns}
 }
 }
 \description{
