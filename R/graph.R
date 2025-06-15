@@ -1,14 +1,17 @@
 #' Create dependency graph from parsed script data
 #'
 #' Builds a Directed Acyclic Graph (DAG) where scripts are nodes and files are edges.
-#' Each edge represents a file dependency between two scripts.
+#' Each edge represents a file dependency between two scripts. Optionally accepts
+#' a state object to mark nodes as stale or fresh based on file changes.
 #'
 #' @param parse_data Named list from parse() function, where each element
 #'   represents a script with 'inputs' and 'outputs' character vectors.
+#' @param state_obj Optional. Data frame from read_state() function with 'file'
+#'   and 'stale' columns. If provided, will mark nodes as stale/fresh.
 #' @return List containing:
 #'   \itemize{
-#'     \item{nodes: Character vector of script names}
-#'     \item{edges: Data frame with 'from', 'to', and 'file' columns}
+#'     \item{nodes: Data frame with 'file' and 'stale' columns}
+#'     \item{edges: Data frame with 'from', 'to', 'file', and 'stale' columns}
 #'   }
 #' @importFrom stats setNames
 #' @export
@@ -17,23 +20,33 @@
 #' # Parse scripts and create dependency graph
 #' parsed <- parse()
 #' graph_obj <- graph(parsed)
+#' 
+#' # With state information
+#' state_obj <- read_state(".bakepipe.state")
+#' graph_obj <- graph(parsed, state_obj)
 #' }
-graph <- function(parse_data) {
+graph <- function(parse_data, state_obj = NULL) {
   if (length(parse_data) == 0) {
     return(list(
-      nodes = character(0),
-      edges = data.frame(from = character(0), to = character(0), file = character(0), stringsAsFactors = FALSE)
+      nodes = data.frame(file = character(0), stale = logical(0), stringsAsFactors = FALSE),
+      edges = data.frame(from = character(0), to = character(0), 
+                        file = character(0), stale = logical(0), stringsAsFactors = FALSE)
     ))
   }
   
   # Validate single producer per artifact
   validate_single_producer(parse_data)
   
-  # Collect script nodes
-  nodes <- names(parse_data)
+  # Collect script nodes and mark staleness based on dependencies
+  script_names <- names(parse_data)
+  nodes <- data.frame(
+    file = script_names,
+    stale = determine_node_staleness(script_names, parse_data, state_obj),
+    stringsAsFactors = FALSE
+  )
   
   # Build edges between scripts through files
-  edges <- build_script_edges(parse_data)
+  edges <- build_script_edges(parse_data, state_obj)
   
   # Create graph object
   graph_obj <- list(
@@ -41,8 +54,11 @@ graph <- function(parse_data) {
     edges = edges
   )
   
-  # Detect cycles
-  detect_cycles(graph_obj)
+  # Detect cycles (using node names)
+  detect_cycles_with_df(graph_obj)
+  
+  # Propagate staleness to descendants
+  graph_obj <- propagate_staleness(graph_obj)
   
   return(graph_obj)
 }
@@ -67,17 +83,109 @@ validate_single_producer <- function(parse_data) {
   }
 }
 
+#' Determine staleness for files
+#'
+#' @param files Character vector of file names
+#' @param state_obj Optional state object from read_state()
+#' @return Logical vector indicating staleness
+#' @keywords internal
+determine_staleness <- function(files, state_obj = NULL) {
+  if (is.null(state_obj)) {
+    return(rep(TRUE, length(files)))
+  }
+  
+  # For each file, check if it's in state_obj and mark accordingly
+  stale <- logical(length(files))
+  for (i in seq_along(files)) {
+    file <- files[i]
+    if (file %in% state_obj$file) {
+      # Use the stale status from state_obj
+      stale[i] <- state_obj$stale[state_obj$file == file][1]
+    } else {
+      # File not in state_obj, mark as stale
+      stale[i] <- TRUE
+    }
+  }
+  
+  stale
+}
+
+#' Determine staleness for script nodes based on their dependencies
+#'
+#' @param script_names Character vector of script names
+#' @param parse_data Named list from parse() function
+#' @param state_obj Optional state object from read_state()
+#' @return Logical vector indicating staleness for each script
+#' @keywords internal
+determine_node_staleness <- function(script_names, parse_data,
+                                     state_obj = NULL) {
+  if (is.null(state_obj)) {
+    return(rep(TRUE, length(script_names)))
+  }
+
+  stale <- logical(length(script_names))
+
+  for (i in seq_along(script_names)) {
+    script_name <- script_names[i]
+    script_data <- parse_data[[script_name]]
+    script_is_stale <- FALSE
+
+    # Check if script itself is stale
+    if (script_name %in% state_obj$file) {
+      script_is_stale <- state_obj$stale[state_obj$file == script_name][1]
+    } else {
+      script_is_stale <- TRUE  # Not in state, mark as stale
+    }
+
+    # Check if any input files are stale
+    if (!script_is_stale) {
+      for (input_file in script_data$inputs) {
+        if (input_file %in% state_obj$file) {
+          if (state_obj$stale[state_obj$file == input_file][1]) {
+            script_is_stale <- TRUE
+            break
+          }
+        } else {
+          script_is_stale <- TRUE  # Input not in state, mark as stale
+          break
+        }
+      }
+    }
+
+    # Check if any output files are stale (manually modified)
+    if (!script_is_stale) {
+      for (output_file in script_data$outputs) {
+        if (output_file %in% state_obj$file) {
+          if (state_obj$stale[state_obj$file == output_file][1]) {
+            script_is_stale <- TRUE
+            break
+          }
+        } else {
+          script_is_stale <- TRUE  # Output not in state, mark as stale
+          break
+        }
+      }
+    }
+
+    stale[i] <- script_is_stale
+  }
+
+  stale
+}
+
 #' Build edges between scripts through file dependencies
 #'
 #' Creates edges where scripts are connected if one produces a file that
-#' another consumes.
+#' another consumes. Includes staleness information for each edge.
 #'
 #' @param parse_data Named list from parse() function
-#' @return Data frame with 'from', 'to', and 'file' columns
+#' @param state_obj Optional state object from read_state()
+#' @return Data frame with 'from', 'to', 'file', and 'stale' columns
 #' @keywords internal
-build_script_edges <- function(parse_data) {
+build_script_edges <- function(parse_data, state_obj = NULL) {
   edges <- data.frame(from = character(0), to = character(0),
-                      file = character(0), stringsAsFactors = FALSE)
+                      file = character(0), stale = logical(0),
+                      stringsAsFactors = FALSE)
 
   # Create a mapping of files to their producers
   file_producers <- list()
@@ -95,10 +203,12 @@ build_script_edges <- function(parse_data) {
       # If this input file is produced by another script, create an edge
       if (input_file %in% names(file_producers)) {
         producer_script <- file_producers[[input_file]]
+        file_stale <- determine_staleness(input_file, state_obj)[1]
         edges <- rbind(edges, data.frame(
           from = producer_script,
           to = script_name,
           file = input_file,
+          stale = file_stale,
           stringsAsFactors = FALSE
         ))
       }
@@ -109,12 +219,12 @@ build_script_edges <- function(parse_data) {
 }
 
 
-#' Detect cycles in the dependency graph using DFS
+#' Detect cycles in the dependency graph using DFS (with data frame nodes)
 #'
 #' @param graph_obj Graph object from graph() function
 #' @keywords internal
-detect_cycles <- function(graph_obj) {
-  nodes <- graph_obj$nodes
+detect_cycles_with_df <- function(graph_obj) {
+  nodes <- graph_obj$nodes$file
   edges <- graph_obj$edges
 
   # DFS state: 0 = unvisited, 1 = visiting, 2 = visited
@@ -172,7 +282,7 @@ detect_cycles <- function(graph_obj) {
 #' execution_order <- topological_sort(graph_obj)
 #' }
 topological_sort <- function(graph_obj) {
-  nodes <- graph_obj$nodes
+  nodes <- graph_obj$nodes$file
   edges <- graph_obj$edges
 
   if (length(nodes) == 0) {
@@ -235,7 +345,7 @@ topological_sort <- function(graph_obj) {
 #' stale_scripts <- find_descendants(graph_obj, "data_cleaning.R")
 #' }
 find_descendants <- function(graph_obj, node) {
-  nodes <- graph_obj$nodes
+  nodes <- graph_obj$nodes$file
   edges <- graph_obj$edges
 
   if (!node %in% nodes) {
@@ -262,4 +372,65 @@ find_descendants <- function(graph_obj, node) {
   }
 
   sort(unique(visited))
+}
+
+#' Propagate staleness to descendants using DFS traversal
+#'
+#' If a node itself OR any edges from or to the node is stale,
+#' mark all descendants as stale using DFS traversal.
+#'
+#' @param graph_obj Graph object with nodes and edges data frames
+#' @keywords internal
+propagate_staleness <- function(graph_obj) {
+  nodes <- graph_obj$nodes
+  edges <- graph_obj$edges
+
+  # Get neighbors from edges
+  get_neighbors <- function(node) {
+    edges$to[edges$from == node]
+  }
+
+  # Check if a node has any stale edges (from or to)
+  has_stale_edges <- function(node) {
+    # Check edges from this node
+    from_edges_stale <- any(edges$stale[edges$from == node])
+    # Check edges to this node
+    to_edges_stale <- any(edges$stale[edges$to == node])
+
+    from_edges_stale || to_edges_stale
+  }
+
+  # DFS to mark descendants as stale
+  mark_descendants_stale <- function(node, visited = character(0)) {
+    if (node %in% visited) {
+      return(visited)
+    }
+
+    visited <- c(visited, node)
+
+    # Mark current node as stale
+    nodes$stale[nodes$file == node] <<- TRUE
+
+    # Recursively mark all descendants
+    for (neighbor in get_neighbors(node)) {
+      visited <- mark_descendants_stale(neighbor, visited)
+    }
+
+    visited
+  }
+
+  # Process each node
+  for (i in seq_len(nrow(nodes))) {
+    node_name <- nodes$file[i]
+    node_is_stale <- nodes$stale[i]
+
+    # If node itself is stale OR has stale edges, mark descendants as stale
+    if (node_is_stale || has_stale_edges(node_name)) {
+      mark_descendants_stale(node_name)
+    }
+  }
+
+  # Update the graph object and return it
+  graph_obj$nodes <- nodes
+  graph_obj
 }

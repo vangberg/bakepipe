@@ -24,20 +24,25 @@ test_that("graph() creates correct DAG structure from parse output", {
   
   # Nodes should only include scripts, not files
   nodes <- graph$nodes
-  expect_true("analysis.R" %in% nodes)
-  expect_true("report_generation.R" %in% nodes)
-  expect_true("data_cleaning.R" %in% nodes)
-  expect_false("sales.csv" %in% nodes)
-  expect_false("monthly_sales.csv" %in% nodes)
-  expect_false("regions.csv" %in% nodes)
-  expect_false("quarterly_report.pdf" %in% nodes)
-  expect_false("raw_data.txt" %in% nodes)
-  expect_false("cleaned_data.csv" %in% nodes)
-  expect_false("summary_stats.txt" %in% nodes)
+  expect_s3_class(nodes, "data.frame")
+  expect_true("file" %in% names(nodes))
+  expect_true("stale" %in% names(nodes))
+  expect_true("analysis.R" %in% nodes$file)
+  expect_true("report_generation.R" %in% nodes$file)
+  expect_true("data_cleaning.R" %in% nodes$file)
+  expect_false("sales.csv" %in% nodes$file)
+  expect_false("monthly_sales.csv" %in% nodes$file)
+  expect_false("regions.csv" %in% nodes$file)
+  expect_false("quarterly_report.pdf" %in% nodes$file)
+  expect_false("raw_data.txt" %in% nodes$file)
+  expect_false("cleaned_data.csv" %in% nodes$file)
+  expect_false("summary_stats.txt" %in% nodes$file)
   
   # Check edges connect scripts through files
   edges <- graph$edges
+  expect_s3_class(edges, "data.frame")
   expect_true("file" %in% names(edges))
+  expect_true("stale" %in% names(edges))
   # analysis.R produces monthly_sales.csv, report_generation.R consumes it
   expect_true(any(edges$from == "analysis.R" & edges$to == "report_generation.R" & edges$file == "monthly_sales.csv"))
 })
@@ -136,7 +141,7 @@ test_that("graph() handles empty parse data", {
   graph_obj <- graph(parse_data)
   
   expect_type(graph_obj, "list")
-  expect_equal(length(graph_obj$nodes), 0)
+  expect_equal(nrow(graph_obj$nodes), 0)
   expect_equal(nrow(graph_obj$edges), 0)
 })
 
@@ -154,9 +159,9 @@ test_that("graph() handles scripts with no dependencies", {
   
   graph_obj <- graph(parse_data)
   
-  expect_true("standalone.R" %in% graph_obj$nodes)
-  expect_true("producer.R" %in% graph_obj$nodes)
-  expect_false("data.csv" %in% graph_obj$nodes)
+  expect_true("standalone.R" %in% graph_obj$nodes$file)
+  expect_true("producer.R" %in% graph_obj$nodes$file)
+  expect_false("data.csv" %in% graph_obj$nodes$file)
   
   # Check edges - standalone script should have no edges
   standalone_edges <- graph_obj$edges[graph_obj$edges$from == "standalone.R" | 
@@ -192,4 +197,149 @@ test_that("topological_sort() returns scripts in dependency order", {
   expect_true(all(grepl("\\.R$", topo_order)))
   
   expect_equal(topo_order, c("step1.R", "step2.R", "step3.R"))
+})
+
+test_that("graph() with state_obj marks nodes as stale correctly", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("intermediate.csv")),
+    "script2.R" = list(inputs = c("intermediate.csv"), outputs = c("output.csv")),
+    "script3.R" = list(inputs = c("other.csv"), outputs = c("final.csv"))
+  )
+  
+  # Create state object with mixed fresh/stale files (new data frame format)
+  state_obj <- data.frame(
+    file = c("script1.R", "input.csv", "intermediate.csv", "script2.R", 
+             "output.csv", "script3.R", "other.csv", "final.csv"),
+    stale = c(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+    stringsAsFactors = FALSE
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # Check that nodes data frame has stale information
+  expect_true("nodes" %in% names(graph_obj))
+  expect_s3_class(graph_obj$nodes, "data.frame")
+  expect_true("stale" %in% names(graph_obj$nodes))
+  
+  # script1.R should be stale because its input (input.csv) is stale
+  script1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script1.R"]
+  expect_true(script1_stale)
+  
+  # script2.R should be stale because script1.R (which produces its input) is stale
+  script2_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script2.R"]
+  expect_true(script2_stale)
+  
+  # script3.R should be fresh because its dependencies are fresh
+  script3_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script3.R"]
+  expect_false(script3_stale)
+})
+
+test_that("graph() without state_obj works as before", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv"))
+  )
+  
+  # Should work without state_obj parameter - all nodes should be stale
+  graph_obj <- graph(parse_data)
+  
+  expect_true("nodes" %in% names(graph_obj))
+  expect_true("edges" %in% names(graph_obj))
+  expect_s3_class(graph_obj$nodes, "data.frame")
+  expect_true("stale" %in% names(graph_obj$nodes))
+  # Without state_obj, all nodes should be marked as stale
+  expect_true(all(graph_obj$nodes$stale))
+})
+
+test_that("graph() marks all nodes as fresh when no stale files", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv")),
+    "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"))
+  )
+  
+  # State object with no stale files (new data frame format)
+  state_obj <- data.frame(
+    file = c("script1.R", "script2.R", "input.csv", "output.csv", "final.csv"),
+    stale = c(FALSE, FALSE, FALSE, FALSE, FALSE),
+    stringsAsFactors = FALSE
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # All scripts should be fresh when no stale files
+  expect_true(all(!graph_obj$nodes$stale))
+})
+
+test_that("graph() marks nodes as stale when files not in state", {
+  parse_data <- list(
+    "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv")),
+    "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"))
+  )
+  
+  # State object with some files marked as stale (new data frame format)
+  state_obj <- data.frame(
+    file = c("script1.R", "script2.R", "input.csv", "output.csv", "final.csv"),
+    stale = c(FALSE, TRUE, TRUE, TRUE, TRUE),
+    stringsAsFactors = FALSE
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # script1.R should be stale due to input.csv being stale, script2.R should be stale
+  script1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script1.R"]
+  script2_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script2.R"]
+  expect_true(script1_stale)
+  expect_true(script2_stale)
+})
+
+test_that("graph() propagates staleness correctly via DFS", {
+  # Linear pipeline: script1 -> script2 -> script3
+  parse_data <- list(
+    "script1.R" = list(inputs = c("raw.csv"), outputs = c("clean.csv")),
+    "script2.R" = list(inputs = c("clean.csv"), outputs = c("processed.csv")),
+    "script3.R" = list(inputs = c("processed.csv"), outputs = c("final.csv"))
+  )
+  
+  # State where only script1.R is stale (new data frame format)
+  state_obj <- data.frame(
+    file = c("script1.R", "script2.R", "script3.R", "raw.csv", "clean.csv", "processed.csv", "final.csv"),
+    stale = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+    stringsAsFactors = FALSE
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # All scripts should be stale due to propagation
+  script1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script1.R"]
+  script2_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script2.R"]
+  script3_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script3.R"]
+  expect_true(script1_stale)
+  expect_true(script2_stale)
+  expect_true(script3_stale)
+})
+
+test_that("graph() handles disconnected components correctly", {
+  # Two independent pipelines
+  parse_data <- list(
+    "pipeline1_step1.R" = list(inputs = c("data1.csv"), outputs = c("result1.csv")),
+    "pipeline1_step2.R" = list(inputs = c("result1.csv"), outputs = c("final1.csv")),
+    "pipeline2_step1.R" = list(inputs = c("data2.csv"), outputs = c("final2.csv"))
+  )
+  
+  # Only pipeline1 has stale data (new data frame format)
+  state_obj <- data.frame(
+    file = c("pipeline1_step1.R", "pipeline1_step2.R", "pipeline2_step1.R", 
+             "data1.csv", "result1.csv", "final1.csv", "data2.csv", "final2.csv"),
+    stale = c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE),
+    stringsAsFactors = FALSE
+  )
+  
+  graph_obj <- graph(parse_data, state_obj)
+  
+  # Only pipeline1 scripts should be stale
+  pipeline1_step1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "pipeline1_step1.R"]
+  pipeline1_step2_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "pipeline1_step2.R"]
+  pipeline2_step1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "pipeline2_step1.R"]
+  expect_true(pipeline1_step1_stale)
+  expect_true(pipeline1_step2_stale)
+  expect_false(pipeline2_step1_stale)
 })
