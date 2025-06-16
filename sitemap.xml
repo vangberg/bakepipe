@@ -5,10 +5,11 @@
 <url><loc>https://vangberg.github.io/bakepipe/LICENSE-text.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/authors.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/index.html</loc></url>
-<url><loc>https://vangberg.github.io/bakepipe/reference/build_script_edges.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/build_file_edges.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/build_file_nodes.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/clean.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/compute_file_checksum.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/detect_cycles.html</loc></url>
-<url><loc>https://vangberg.github.io/bakepipe/reference/display_artifacts_table.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/display_scripts_table.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/extract_file_calls.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/file_in.html</loc></url>
@@ -18,11 +19,14 @@
 <url><loc>https://vangberg.github.io/bakepipe/reference/index.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/parse.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/parse_script.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/propagate_staleness.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/read_state.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/root.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/run.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/scripts.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/status.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/topological_sort.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/validate_single_producer.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/write_state.html</loc></url>
 </urlset>
 
