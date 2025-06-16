@@ -7,9 +7,12 @@
 parse()
 }
 \value{
-Named list where each element represents a script. Names are script
-paths relative to project root. Each element contains 'inputs' and 'outputs'
-character vectors.
+List with three elements:
+\itemize{
+\item{scripts: Named list where each element represents a script with 'inputs' and 'outputs'}
+\item{inputs: Character vector of all files used as inputs across all scripts}
+\item{outputs: Character vector of all files produced as outputs across all scripts}
+}
 }
 \description{
 Finds all R scripts in the project and parses them to detect file_in() and

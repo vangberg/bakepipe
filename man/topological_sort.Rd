@@ -4,22 +4,25 @@
 \alias{topological_sort}
 \title{Topological sort of the dependency graph}
 \usage{
-topological_sort(graph_obj)
+topological_sort(graph_obj, scripts_only = FALSE)
 }
 \arguments{
 \item{graph_obj}{Graph object from graph() function}
+
+\item{scripts_only}{Logical. If TRUE, returns only script nodes in order}
 }
 \value{
-Character vector of script names in topological order
+Character vector of file names in topological order
 }
 \description{
-Returns scripts in topological order using Kahn's algorithm. Scripts will
-appear in an order where all dependencies come before the script.
+Returns files in topological order using Kahn's algorithm. Files will
+appear in an order where all dependencies come before the file.
+Only returns scripts in execution order when filtering by type.
 }
 \examples{
 \dontrun{
 parsed <- parse()
 graph_obj <- graph(parsed)
-execution_order <- topological_sort(graph_obj)
+execution_order <- topological_sort(graph_obj, scripts_only = TRUE)
 }
 }

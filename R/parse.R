@@ -4,9 +4,12 @@
 #' file_out() calls. Only string literals are supported as arguments to these
 #' functions.
 #'
-#' @return Named list where each element represents a script. Names are script
-#'   paths relative to project root. Each element contains 'inputs' and 'outputs'
-#'   character vectors.
+#' @return List with three elements:
+#'   \itemize{
+#'     \item{scripts: Named list where each element represents a script with 'inputs' and 'outputs'}
+#'     \item{inputs: Character vector of all files used as inputs across all scripts}
+#'     \item{outputs: Character vector of all files produced as outputs across all scripts}
+#'   }
 #' @keywords internal
 #' @examples
 #' \dontrun{
@@ -17,16 +20,22 @@ parse <- function() {
   # Get all R scripts in the project
   script_paths <- scripts()
   
-  # If no scripts found, return empty list
+  # If no scripts found, return empty structure
   if (length(script_paths) == 0) {
-    return(list())
+    return(list(
+      scripts = list(),
+      inputs = character(0),
+      outputs = character(0)
+    ))
   }
   
   # Get project root to make relative paths
   project_root <- root()
   
-  # Initialize result list
-  result <- list()
+  # Initialize result lists
+  scripts <- list()
+  all_inputs <- character(0)
+  all_outputs <- character(0)
   
   # Parse each script
   for (script_path in script_paths) {
@@ -38,11 +47,19 @@ parse <- function() {
     # Parse the script
     script_info <- parse_script(script_path)
     
-    # Add to result with relative path as key
-    result[[rel_path]] <- script_info
+    # Add to scripts list
+    scripts[[rel_path]] <- script_info
+    
+    # Collect all inputs and outputs
+    all_inputs <- c(all_inputs, script_info$inputs)
+    all_outputs <- c(all_outputs, script_info$outputs)
   }
   
-  return(result)
+  return(list(
+    scripts = scripts,
+    inputs = unique(all_inputs),
+    outputs = unique(all_outputs)
+  ))
 }
 
 #' Parse a single R script for file dependencies

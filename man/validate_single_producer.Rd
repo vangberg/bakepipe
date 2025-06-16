@@ -2,14 +2,14 @@
 % Please edit documentation in R/graph.R
 \name{validate_single_producer}
 \alias{validate_single_producer}
-\title{Validate that each artifact has at most one producer}
+\title{Validate that each output file has at most one producer script}
 \usage{
-validate_single_producer(parse_data)
+validate_single_producer(graph_obj)
 }
 \arguments{
-\item{parse_data}{Named list from parse() function}
+\item{graph_obj}{Graph object from graph() function}
 }
 \description{
-Validate that each artifact has at most one producer
+Validate that each output file has at most one producer script
 }
 \keyword{internal}

@@ -39,7 +39,7 @@ When implementing new features:
 
 ## Notifications
 
-When Claude Code needs user input or attention, use terminal-notifier:
+When Claude Code needs user input or attention, ALWAYS use terminal-notifier:
 ```bash
 terminal-notifier -message "Claude Code needs your input" -title "Claude Code" -sound "default"
 ```

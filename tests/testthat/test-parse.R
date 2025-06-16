@@ -34,12 +34,19 @@ ggsave(file_out("quarterly_report.pdf"), report)
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 2)
-  expect_true("analysis.R" %in% names(result))
-  expect_true("report_generation.R" %in% names(result))
+  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_true("scripts" %in% names(result))
+  expect_true("inputs" %in% names(result))
+  expect_true("outputs" %in% names(result))
+  
+  # Check scripts structure
+  scripts <- result$scripts
+  expect_length(scripts, 2)
+  expect_true("analysis.R" %in% names(scripts))
+  expect_true("report_generation.R" %in% names(scripts))
   
   # Check analysis.R structure
-  analysis_result <- result[["analysis.R"]]
+  analysis_result <- scripts[["analysis.R"]]
   expect_type(analysis_result, "list")
   expect_true("inputs" %in% names(analysis_result))
   expect_true("outputs" %in% names(analysis_result))
@@ -47,10 +54,17 @@ ggsave(file_out("quarterly_report.pdf"), report)
   expect_equal(analysis_result$outputs, "monthly_sales.csv")
   
   # Check report_generation.R structure
-  report_result <- result[["report_generation.R"]]
+  report_result <- scripts[["report_generation.R"]]
   expect_type(report_result, "list")
   expect_equal(sort(report_result$inputs), c("monthly_sales.csv", "regions.csv"))
   expect_equal(report_result$outputs, "quarterly_report.pdf")
+  
+  # Check top-level inputs and outputs
+  expect_true("sales.csv" %in% result$inputs)
+  expect_true("monthly_sales.csv" %in% result$inputs)
+  expect_true("regions.csv" %in% result$inputs)
+  expect_true("monthly_sales.csv" %in% result$outputs)
+  expect_true("quarterly_report.pdf" %in% result$outputs)
   
   # Cleanup
   setwd(old_wd)
@@ -87,13 +101,19 @@ process_data <- function(data) {
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 1)
-  expect_true("utilities.R" %in% names(result))
+  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_true("scripts" %in% names(result))
+  expect_length(result$scripts, 1)
+  expect_true("utilities.R" %in% names(result$scripts))
   
-  utilities_result <- result[["utilities.R"]]
+  utilities_result <- result$scripts[["utilities.R"]]
   expect_type(utilities_result, "list")
   expect_equal(utilities_result$inputs, character(0))
   expect_equal(utilities_result$outputs, character(0))
+  
+  # Check top-level inputs and outputs are empty
+  expect_equal(result$inputs, character(0))
+  expect_equal(result$outputs, character(0))
   
   # Cleanup
   setwd(old_wd)
@@ -177,11 +197,17 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 1)
+  expect_length(result, 3)  # scripts, inputs, outputs
   
-  multi_result <- result[["data_cleaning.R"]]
+  multi_result <- result$scripts[["data_cleaning.R"]]
   expect_equal(sort(multi_result$inputs), c("metadata.csv", "raw_data.txt"))
   expect_equal(sort(multi_result$outputs), c("cleaned_data.csv", "summary_stats.txt"))
+  
+  # Check top-level inputs and outputs
+  expect_true("metadata.csv" %in% result$inputs)
+  expect_true("raw_data.txt" %in% result$inputs)
+  expect_true("cleaned_data.csv" %in% result$outputs)
+  expect_true("summary_stats.txt" %in% result$outputs)
   
   # Cleanup
   setwd(old_wd)
@@ -224,14 +250,14 @@ write.csv(result, file_out("results.csv"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 2)
-  expect_true("main.R" %in% names(result))
-  expect_true(file.path("analysis", "analyze.R") %in% names(result) || 
-              "analysis/analyze.R" %in% names(result))
+  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_true("main.R" %in% names(result$scripts))
+  expect_true(file.path("analysis", "analyze.R") %in% names(result$scripts) || 
+              "analysis/analyze.R" %in% names(result$scripts))
   
   # Check that the subdirectory script is parsed correctly
-  sub_key <- names(result)[grepl("analyze.R", names(result))]
-  sub_result <- result[[sub_key]]
+  sub_key <- names(result$scripts)[grepl("analyze.R", names(result$scripts))]
+  sub_result <- result$scripts[[sub_key]]
   expect_equal(sub_result$inputs, "processed.csv")
   expect_equal(sub_result$outputs, "results.csv")
   
@@ -266,8 +292,10 @@ test_that("parse() returns empty list when no R scripts found", {
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 0)
-  expect_true(is.null(names(result)) || length(names(result)) == 0)
+  expect_length(result, 3)  # Still has scripts, inputs, outputs structure
+  expect_length(result$scripts, 0)
+  expect_length(result$inputs, 0)
+  expect_length(result$outputs, 0)
   
   # Cleanup
   setwd(old_wd)
@@ -303,9 +331,9 @@ write.csv(data2, file_out(\"output_double.csv\"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 1)
+  expect_length(result, 3)  # scripts, inputs, outputs
   
-  quote_result <- result[["quotes.R"]]
+  quote_result <- result$scripts[["quotes.R"]]
   expect_equal(sort(quote_result$inputs), c("double_quote.csv", "single_quote.csv"))
   expect_equal(sort(quote_result$outputs), c("output_double.csv", "output_single.csv"))
   
@@ -343,9 +371,9 @@ write.csv(data, file_out("real_output.csv"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 1)
+  expect_length(result, 3)  # scripts, inputs, outputs
   
-  comment_result <- result[["comments.R"]]
+  comment_result <- result$scripts[["comments.R"]]
   expect_equal(comment_result$inputs, "real_input.csv")
   expect_equal(comment_result$outputs, "real_output.csv")
   
