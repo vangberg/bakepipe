@@ -2,27 +2,29 @@
 % Please edit documentation in R/graph.R
 \name{find_descendants}
 \alias{find_descendants}
-\title{Find all descendants of a script in the dependency graph}
+\title{Find all descendants of a file in the dependency graph}
 \usage{
-find_descendants(graph_obj, node)
+find_descendants(graph_obj, node, scripts_only = FALSE)
 }
 \arguments{
 \item{graph_obj}{Graph object from graph() function}
 
-\item{node}{Starting script to find descendants from}
+\item{node}{Starting file to find descendants from}
+
+\item{scripts_only}{Logical. If TRUE, returns only script descendants}
 }
 \value{
-Character vector of all descendant script names
+Character vector of all descendant file names
 }
 \description{
-Returns all scripts that depend on the given script by following
-the directed edges. Useful for marking scripts as stale when an upstream
+Returns all files that depend on the given file by following
+the directed edges. Useful for marking files as stale when an upstream
 dependency changes.
 }
 \examples{
 \dontrun{
 parsed <- parse()
 graph_obj <- graph(parsed)
-stale_scripts <- find_descendants(graph_obj, "data_cleaning.R")
+stale_files <- find_descendants(graph_obj, "input.csv")
 }
 }

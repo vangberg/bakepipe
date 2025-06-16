@@ -16,19 +16,12 @@ clean <- function() {
   dependencies <- bakepipe:::parse()
 
   # If no scripts found, return empty vector
-  if (length(dependencies) == 0) {
-    character(0)
+  if (length(dependencies$scripts) == 0) {
+    return(character(0))
   }
 
-  # Collect all outputs
-  all_outputs <- character(0)
-
-  for (script_info in dependencies) {
-    all_outputs <- c(all_outputs, script_info$outputs)
-  }
-
-  # Remove duplicates
-  all_outputs <- unique(all_outputs)
+  # Get all outputs from the top-level outputs list
+  all_outputs <- dependencies$outputs
 
   # Only try to remove files that actually exist
   existing_files <- all_outputs[file.exists(all_outputs)]

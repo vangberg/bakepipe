@@ -1,6 +1,8 @@
 #' Run pipeline
 #'
-#' Execute all scripts in the pipeline graph in topological order
+#' Execute scripts in the pipeline graph in topological order. Only runs
+#' scripts that are stale (have changed or have stale dependencies) for
+#' incremental execution.
 #'
 #' @return Character vector of files that were created or updated
 #' @export
@@ -9,19 +11,37 @@ run <- function() {
   pipeline_data <- parse()
 
   # Handle empty pipeline
-  if (length(pipeline_data) == 0) {
+  if (length(pipeline_data$scripts) == 0) {
     return(character(0))
   }
 
-  # Create dependency graph
-  graph_obj <- graph(pipeline_data)
+  # Read current state
+  state_file <- file.path(root(), ".bakepipe.state")
+  state_obj <- read_state(state_file)
+
+  # Create dependency graph with state information
+  graph_obj <- graph(pipeline_data, state_obj)
 
   # Get scripts in topological order
-  topo_order <- topological_sort(graph_obj)
+  topo_order <- topological_sort(graph_obj, scripts_only = TRUE)
 
-  # Filter to only script files (not artifacts)
-  script_names <- names(pipeline_data)
-  scripts_to_run <- topo_order[topo_order %in% script_names]
+  # All files in topo_order are already scripts
+  script_names <- names(pipeline_data$scripts)
+  all_scripts <- topo_order[topo_order %in% script_names]
+
+  # Only run stale scripts for incremental execution
+  # Get stale scripts from the nodes data frame
+  stale_scripts <- graph_obj$nodes$file[graph_obj$nodes$stale]
+  scripts_to_run <- all_scripts[all_scripts %in% stale_scripts]
+  scripts_to_skip <- all_scripts[!all_scripts %in% stale_scripts]
+
+  # Calculate max script name width for alignment
+  max_width <- max(nchar(all_scripts))
+
+  # Print messages about scripts being skipped
+  for (script_name in scripts_to_skip) {
+    cat(sprintf("%-*s : skipping (fresh)\n", max_width, script_name))
+  }
 
   # Track files created during execution
   created_files <- character(0)
@@ -29,7 +49,7 @@ run <- function() {
   # Execute each script in order
   for (script_name in scripts_to_run) {
     # Get script info
-    script_info <- pipeline_data[[script_name]]
+    script_info <- pipeline_data$scripts[[script_name]]
 
     # Check if all input files exist
     for (input_file in script_info$inputs) {
@@ -43,7 +63,7 @@ run <- function() {
     output_files <- script_info$outputs
 
     # Execute the script
-    cat("Running script:", script_name, "\n")
+    cat(sprintf("%-*s : running\n", max_width, script_name))
     tryCatch({
       source(script_name, local = TRUE)
     }, error = function(e) {
@@ -60,6 +80,9 @@ run <- function() {
       }
     }
   }
+
+  # Update state file after execution
+  write_state(state_file, pipeline_data)
 
   # Return unique list of created files
   unique(created_files)
