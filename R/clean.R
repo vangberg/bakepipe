@@ -17,6 +17,8 @@ clean <- function() {
 
   # If no scripts found, return empty vector
   if (length(dependencies$scripts) == 0) {
+    cat("\n🧹 \033[1;36mBakepipe Clean\033[0m\n")
+    cat("\033[33m   No output files found to clean\033[0m\n\n")
     return(character(0))
   }
 
@@ -26,13 +28,50 @@ clean <- function() {
   # Only try to remove files that actually exist
   existing_files <- all_outputs[file.exists(all_outputs)]
 
-  # Remove the files
+  # Print header
+  cat("\n🧹 \033[1;36mBakepipe Clean\033[0m\n")
+  
+  if (length(existing_files) == 0) {
+    cat("\033[32m✨ No output files to clean - all clean!\033[0m\n\n")
+    return(character(0))
+  }
+
+  cat(paste0("\033[33m   Found ", length(existing_files), " output file",
+             if(length(existing_files) > 1) "s" else "", " to remove\033[0m\n\n"))
+
+  # Calculate max filename width for alignment
+  max_width <- max(nchar(existing_files))
+
+  # Remove the files with progress indicators
   removed_files <- character(0)
+  failed_files <- character(0)
+  
   for (file_path in existing_files) {
     if (file.remove(file_path)) {
       removed_files <- c(removed_files, file_path)
+      cat(sprintf("\033[31m🗑️  %s\033[0m\n", file_path))
+    } else {
+      failed_files <- c(failed_files, file_path)
+      cat(sprintf("\033[33m⚠️  %-*s \033[2m(failed to remove)\033[0m\n", max_width, file_path))
     }
   }
+
+  # Print summary
+  cat("\n\033[1;36m📊 Summary\033[0m\n")
+  
+  if (length(removed_files) > 0) {
+    cat(sprintf("\033[32m   Removed %d file%s\033[0m\n", 
+                length(removed_files),
+                if(length(removed_files) > 1) "s" else ""))
+  }
+  
+  if (length(failed_files) > 0) {
+    cat(sprintf("\033[33m   Failed to remove %d file%s\033[0m\n", 
+                length(failed_files),
+                if(length(failed_files) > 1) "s" else ""))
+  }
+  
+  cat("\n")
 
   removed_files
 }

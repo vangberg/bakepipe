@@ -12,6 +12,8 @@ run <- function() {
 
   # Handle empty pipeline
   if (length(pipeline_data$scripts) == 0) {
+    cat("\n🥖 \033[1;36mBakepipe Pipeline\033[0m\n")
+    cat("\033[33m   No scripts found in pipeline\033[0m\n\n")
     return(character(0))
   }
 
@@ -35,16 +37,29 @@ run <- function() {
   scripts_to_run <- all_scripts[all_scripts %in% stale_scripts]
   scripts_to_skip <- all_scripts[!all_scripts %in% stale_scripts]
 
+  # Print header
+  cat("\n🥖 \033[1;36mBakepipe Pipeline\033[0m\n")
+  if (length(scripts_to_run) > 0) {
+    cat(paste0("\033[32m   Running ", length(scripts_to_run), " script",
+               if(length(scripts_to_run) > 1) "s" else "", "\033[0m\n"))
+  }
+  if (length(scripts_to_skip) > 0) {
+    cat(paste0("\033[33m   Skipping ", length(scripts_to_skip), " fresh script",
+               if(length(scripts_to_skip) > 1) "s" else "", "\033[0m\n"))
+  }
+  cat("\n")
+
   # Calculate max script name width for alignment
   max_width <- max(nchar(all_scripts))
 
   # Print messages about scripts being skipped
   for (script_name in scripts_to_skip) {
-    cat(sprintf("%-*s : skipping (fresh)\n", max_width, script_name))
+    cat(sprintf("\033[90m✓ %-*s \033[2m(fresh)\033[0m\n", max_width, script_name))
   }
 
   # Track files created during execution
   created_files <- character(0)
+  script_times <- numeric(0)
 
   # Execute each script in order
   for (script_name in scripts_to_run) {
@@ -62,13 +77,27 @@ run <- function() {
     # Store output files to track what gets created
     output_files <- script_info$outputs
 
-    # Execute the script
-    cat(sprintf("%-*s : running\n", max_width, script_name))
+    # Execute the script with timing
+    start_time <- Sys.time()
+    
     tryCatch({
       source(script_name, local = TRUE)
     }, error = function(e) {
       stop("Error executing script '", script_name, "': ", e$message)
     })
+    
+    end_time <- Sys.time()
+    elapsed <- as.numeric(difftime(end_time, start_time, units = "secs"))
+    script_times <- c(script_times, elapsed)
+    names(script_times)[length(script_times)] <- script_name
+    
+    # Show completion with timing
+    if (elapsed < 1) {
+      time_str <- sprintf("%.0fms", elapsed * 1000)
+    } else {
+      time_str <- sprintf("%.1fs", elapsed)
+    }
+    cat(sprintf("\033[32m✓ %-*s \033[2m(%s)\033[0m\n", max_width, script_name, time_str))
 
     # Check that expected output files were created
     for (output_file in output_files) {
@@ -79,6 +108,36 @@ run <- function() {
                 output_file, "' but file does not exist")
       }
     }
+  }
+
+  # Print summary
+  if (length(scripts_to_run) > 0 || length(created_files) > 0) {
+    cat("\n\033[1;36m📊 Summary\033[0m\n")
+    
+    if (length(scripts_to_run) > 0) {
+      total_time <- sum(script_times)
+      if (total_time < 1) {
+        time_str <- sprintf("%.0fms", total_time * 1000)
+      } else {
+        time_str <- sprintf("%.1fs", total_time)
+      }
+      cat(sprintf("\033[32m   Executed %d script%s in %s\033[0m\n", 
+                  length(scripts_to_run),
+                  if(length(scripts_to_run) > 1) "s" else "",
+                  time_str))
+    }
+    
+    if (length(created_files) > 0) {
+      cat(sprintf("\033[36m   Created/updated %d file%s:\033[0m\n", 
+                  length(created_files),
+                  if(length(created_files) > 1) "s" else ""))
+      for (file in sort(unique(created_files))) {
+        cat(sprintf("\033[2m     • %s\033[0m\n", file))
+      }
+    }
+    cat("\n")
+  } else {
+    cat("\n\033[32m✨ All scripts are up to date!\033[0m\n\n")
   }
 
   # Update state file after execution

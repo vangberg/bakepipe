@@ -7,6 +7,5 @@
 status()
 }
 \description{
-Display a textual representation of the input/output relationships
-between scripts in the pipeline, including their current state (fresh/stale)
+Display the current state of all scripts in the pipeline (fresh/stale)
 }
