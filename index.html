@@ -148,8 +148,8 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sales</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="reference/file_in.html">file_in</a></span><span class="op">(</span><span class="st">"sales.csv"</span><span class="op">)</span><span class="op">)</span> <span class="co"># Input file</span></span>
-<span><span class="va">monthly</span> <span class="op">&lt;-</span> <span class="va">sales</span> <span class="op">%&gt;%</span> </span>
-<span>  <span class="fu">group_by</span><span class="op">(</span><span class="va">month</span>, <span class="va">category</span><span class="op">)</span> <span class="op">%&gt;%</span> </span>
+<span><span class="va">monthly</span> <span class="op">&lt;-</span> <span class="va">sales</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu">group_by</span><span class="op">(</span><span class="va">month</span>, <span class="va">category</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
 <span>  <span class="fu">summarize</span><span class="op">(</span>revenue <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">revenue</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">monthly</span>, <span class="fu"><a href="reference/file_out.html">file_out</a></span><span class="op">(</span><span class="st">"monthly_sales.csv"</span><span class="op">)</span><span class="op">)</span> <span class="co"># Output file</span></span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -158,7 +158,7 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">monthly</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="reference/file_in.html">file_in</a></span><span class="op">(</span><span class="st">"monthly_sales.csv"</span><span class="op">)</span><span class="op">)</span> <span class="co"># Input file</span></span>
-<span><span class="fu">ggplot</span><span class="op">(</span><span class="va">monthly</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">month</span>, <span class="va">revenue</span>, color <span class="op">=</span> <span class="va">category</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span><span class="fu">ggplot</span><span class="op">(</span><span class="va">monthly</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">month</span>, <span class="va">revenue</span>, color <span class="op">=</span> <span class="va">category</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">geom_line</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggsave</span><span class="op">(</span><span class="fu"><a href="reference/file_out.html">file_out</a></span><span class="op">(</span><span class="st">"monthly_trend.png"</span><span class="op">)</span><span class="op">)</span> <span class="co"># Output file</span></span></code></pre></div>
 <p><code>file_in</code> and <code>file_out</code> are used to mark the input and output of the script. They both return the path to the file, so they can be used directly when reading or writing. They don’t actually read or write files themselves – they just mark file relationships so Bakepipe can figure out what needs to run when. This works seamlessly with any R data type or file format (e.g., <code>.csv</code>, <code>.rds</code>, <code>.fst</code>).</p>
@@ -206,76 +206,6 @@
 <h3 id="how-is-script-execution-order-determined">How is script execution order determined?<a class="anchor" aria-label="anchor" href="#how-is-script-execution-order-determined"></a>
 </h3>
 <p>Bakepipe determines the correct execution order through static analysis of your R scripts, looking for <code>file_in</code> and <code>file_out</code> calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don’t need to refactor your scripts into functions or drastically change your script structure beyond adding the <code><a href="reference/file_in.html">file_in()</a></code> and <code><a href="reference/file_out.html">file_out()</a></code> calls.</p>
-</div>
-<div class="section level3">
-<h3 id="are-outputs-cached">Are outputs cached?<a class="anchor" aria-label="anchor" href="#are-outputs-cached"></a>
-</h3>
-<p>Currently, Bakepipe does not perform any caching or checks to determine if a script needs to be re-run. When <code><a href="reference/run.html">bakepipe::run()</a></code> is called, all scripts in the pipeline graph are executed in their determined topological order every time. While this ensures reproducibility by always running the full analysis, it means computational steps are not skipped if inputs haven’t changed. Caching and conditional execution based on file checks are planned features for future releases.</p>
-</div>
-<div class="section level3">
-<h3 id="how-does-bakepipe-compare-to-other-pipeline-tools">How does Bakepipe compare to other pipeline tools?<a class="anchor" aria-label="anchor" href="#how-does-bakepipe-compare-to-other-pipeline-tools"></a>
-</h3>
-<p>I want to preface this comparison by saying that Bakepipe is much more limited in scope than other pipeline tools. It’s not a replacement for tools like Snakemake or Nextflow, but rather a tool for simple workflows that don’t need the complexity of those tools. Yet, I want to highlight some of the features that make Bakepipe unique.</p>
-<div class="section level4">
-<h4 id="snakemake">Snakemake<a class="anchor" aria-label="anchor" href="#snakemake"></a>
-</h4>
-<p>With Snakemake, you would define the workflow from the walkthrough above as follows:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">rule all</span><span class="kw">:</span><span class="at"> </span></span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="at">    </span><span class="fu">input</span><span class="kw">:</span><span class="at"> </span><span class="st">"plot1.png"</span><span class="er">,</span><span class="at"> </span><span class="er">"plot2.png"</span></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">rule analysis</span><span class="kw">:</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="at">    </span><span class="fu">input</span><span class="kw">:</span><span class="at"> </span><span class="st">"data.csv"</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="at">    </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="st">"analysis.csv"</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="at">    </span><span class="fu">shell</span><span class="kw">:</span><span class="at"> </span><span class="st">"Rscript analysis.R"</span></span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="fu">rule plots</span><span class="kw">:</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="at">    </span><span class="fu">input</span><span class="kw">:</span><span class="at"> </span><span class="st">"analysis.csv"</span></span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="at">    </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="st">"plot1.png"</span><span class="er">,</span><span class="at"> </span><span class="er">"plot2.png"</span></span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="at">    </span><span class="fu">shell</span><span class="kw">:</span><span class="at"> </span><span class="st">"Rscript plots.R"</span></span></code></pre></div>
-<p>And to run the pipeline, you would use the following command:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">snakemake</span></span></code></pre></div>
-<p>Compared with Bakepipe, I think this adds friction. You need to do double bookkeeping, manually keeping the Snakefile and the scripts in sync.</p>
-</div>
-<div class="section level4">
-<h4 id="targets">targets<a class="anchor" aria-label="anchor" href="#targets"></a>
-</h4>
-<p>To implement the same workflow in <code>targets</code>, you would need to refactor the scripts into functions, and then use the <code>tar_target</code> function to define the targets.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># functions.R</span></span>
-<span></span>
-<span><span class="va">get_data</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">analyze</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">plot1</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">plot</span> <span class="op">&lt;-</span> <span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">variable</span>, y <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu">ggsave</span><span class="op">(</span><span class="st">"plot1.png"</span>, <span class="va">plot</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">plot2</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">variable</span>, y <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu">ggsave</span><span class="op">(</span><span class="st">"plot2.png"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># _targets.R</span></span>
-<span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/targets/" class="external-link">targets</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">tar_source</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">file</span>, <span class="st">"data.csv"</span>, format <span class="op">=</span> <span class="st">"file"</span><span class="op">)</span>,</span>
-<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">data</span>, <span class="fu">get_data</span><span class="op">(</span><span class="va">file</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">analysis</span>, <span class="fu">analyze</span><span class="op">(</span><span class="va">data</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">plot1</span>, <span class="fu">plot1</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">plot2</span>, <span class="fu">plot2</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span>,</span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>In other words, to use <code>targets</code>, you need to abandon your script-based workflow and start writing functions. This in itself is not really a big change; worst case you could just wrap each script in a function. But in the process, you lose some of the advantages of a script-based workflow, namely the iterative and interactive development that R users often rely on.</p>
-</div>
 </div>
 </div>
 </div>
