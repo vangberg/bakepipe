@@ -4,7 +4,6 @@
 #' The project root is determined by bakepipe::root().
 #'
 #' @return Character vector of absolute paths to .R files
-#' @export
 #' @examples
 #' \dontrun{
 #' # Get all R scripts in the project
