@@ -49,7 +49,15 @@
 <div class="page-header"><h1 id="bakepipe">Bakepipe<a class="anchor" aria-label="anchor" href="#bakepipe"></a>
 </h1></div>
 <p>Bakepipe is an R library that turns your script-based workflows into reproducible pipelines. It’s designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.</p>
-<p><strong>Key features:</strong> - <strong>Automatic dependency detection</strong> - determines script execution order from <code><a href="reference/file_in.html">file_in()</a></code> and <code><a href="reference/file_out.html">file_out()</a></code> calls - <strong>Incremental execution</strong> - only re-runs scripts when they or their dependencies change - <strong>Script-based workflow</strong> - no need to refactor existing code into functions</p>
+<p><strong>Key features:</strong></p>
+<ul>
+<li>
+<strong>Automatic dependency detection</strong> - determines script execution order from <code><a href="reference/file_in.html">file_in()</a></code> and <code><a href="reference/file_out.html">file_out()</a></code> calls</li>
+<li>
+<strong>Incremental execution</strong> - only re-runs scripts when they or their dependencies change</li>
+<li>
+<strong>Script-based workflow</strong> - no need to refactor existing code into functions</li>
+</ul>
 <div class="section level2">
 <h2 id="table-of-contents">Table of Contents<a class="anchor" aria-label="anchor" href="#table-of-contents"></a>
 </h2>
@@ -214,11 +222,75 @@
 <p>Yes! Bakepipe automatically performs incremental execution by tracking file checksums in a <code>.bakepipe.state</code> file. After the first run, Bakepipe will only re-run scripts that are “stale” - meaning either:</p>
 <ul>
 <li>The script itself has been modified</li>
-<li>Any of the script’s input files have been modified<br>
-</li>
+<li>Any of the script’s input files have been modified</li>
 <li>Any upstream dependencies have been modified</li>
 </ul>
 <p>This makes subsequent runs much faster, as only the necessary scripts are executed. Fresh scripts are skipped with a visual indicator showing they’re up to date.</p>
+</div>
+<div class="section level3">
+<h3 id="how-does-bakepipe-compare-to-other-pipeline-tools">How does Bakepipe compare to other pipeline tools?<a class="anchor" aria-label="anchor" href="#how-does-bakepipe-compare-to-other-pipeline-tools"></a>
+</h3>
+<p>I want to preface this comparison by saying that Bakepipe is much more limited in scope than other pipeline tools. It’s not a replacement for tools like Snakemake or Nextflow, but rather a tool for simple workflows that don’t need the complexity of those tools. Yet, I want to highlight some of the features that make Bakepipe unique.</p>
+<div class="section level4">
+<h4 id="snakemake">Snakemake<a class="anchor" aria-label="anchor" href="#snakemake"></a>
+</h4>
+<p>With Snakemake, you would define the workflow from the walkthrough above as follows:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">rule all</span><span class="kw">:</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="at">    </span><span class="fu">input</span><span class="kw">:</span><span class="at"> </span><span class="st">"plot1.png"</span><span class="er">,</span><span class="at"> </span><span class="er">"plot2.png"</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">rule analysis</span><span class="kw">:</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="at">    </span><span class="fu">input</span><span class="kw">:</span><span class="at"> </span><span class="st">"data.csv"</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="at">    </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="st">"analysis.csv"</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="at">    </span><span class="fu">shell</span><span class="kw">:</span><span class="at"> </span><span class="st">"Rscript analysis.R"</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="fu">rule plots</span><span class="kw">:</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="at">    </span><span class="fu">input</span><span class="kw">:</span><span class="at"> </span><span class="st">"analysis.csv"</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="at">    </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="st">"plot1.png"</span><span class="er">,</span><span class="at"> </span><span class="er">"plot2.png"</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="at">    </span><span class="fu">shell</span><span class="kw">:</span><span class="at"> </span><span class="st">"Rscript plots.R"</span></span></code></pre></div>
+<p>And to run the pipeline, you would use the following command:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">snakemake</span></span></code></pre></div>
+<p>Compared with Bakepipe, I think this adds friction. You need to do double bookkeeping, manually keeping the Snakefile and the scripts in sync.</p>
+</div>
+<div class="section level4">
+<h4 id="targets">targets<a class="anchor" aria-label="anchor" href="#targets"></a>
+</h4>
+<p>To implement the same workflow in <a href="https://docs.ropensci.org/targets/" class="external-link">targets</a>, you would need to refactor the scripts into functions, and then use the <code>tar_target</code> function to define the targets.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># functions.R</span></span>
+<span></span>
+<span><span class="va">get_data</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">analyze</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">plot1</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">plot</span> <span class="op">&lt;-</span> <span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">variable</span>, y <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="fu">ggsave</span><span class="op">(</span><span class="st">"plot1.png"</span>, <span class="va">plot</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">plot2</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">variable</span>, y <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="fu">ggsave</span><span class="op">(</span><span class="st">"plot2.png"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># _targets.R</span></span>
+<span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/targets/" class="external-link">targets</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">tar_source</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">file</span>, <span class="st">"data.csv"</span>, format <span class="op">=</span> <span class="st">"file"</span><span class="op">)</span>,</span>
+<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">data</span>, <span class="fu">get_data</span><span class="op">(</span><span class="va">file</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">analysis</span>, <span class="fu">analyze</span><span class="op">(</span><span class="va">data</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">plot1</span>, <span class="fu">plot1</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu">tar_target</span><span class="op">(</span><span class="va">plot2</span>, <span class="fu">plot2</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span>,</span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>In other words, to use <code>targets</code>, you need to abandon your script-based workflow and start writing functions. This in itself is not really a big change; worst case you could just wrap each script in a function. But in the process, you lose some of the advantages of a script-based workflow, namely the iterative and interactive development that R users often rely on.</p>
+</div>
 </div>
 </div>
 </div>
