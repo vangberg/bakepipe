@@ -226,4 +226,4 @@ list(
 )
 ```
 
-In other words, to use `targets`, you need to abandon your script-based workflow and start writing functions. This in itself is not really a big change; worst case you could just wrap each script in a function. But in the process, you lose some of the advantages of a script-based workflow, namely the iterative and interactive development that R users often rely on.
+In other words, to use `targets`, you need to abandon your script-based workflow and start writing functions. This in itself is not really a big change; worst case you could just wrap each script in a function. But in the process, you lose some of the advantages of a script-based workflow, namely the iterative and interactive development that R users often rely on, which makes e.g. debugging more difficult, something the [targets package acknowledges]([url](https://books.ropensci.org/targets/debugging.html)).
