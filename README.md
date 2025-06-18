@@ -29,7 +29,10 @@ Bakepipe helps you manage this by automatically determining the execution order 
 
 ### Installation
 
-Bakepipe is currently vaporware and cannot be installed. Check back soon!
+```r
+# Install from GitHub using devtools
+devtools::install_github("vangberg/bakepipe")
+```
 
 ### Your First Pipeline
 
