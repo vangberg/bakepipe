@@ -49,6 +49,7 @@
 <div class="page-header"><h1 id="bakepipe">Bakepipe<a class="anchor" aria-label="anchor" href="#bakepipe"></a>
 </h1></div>
 <p>Bakepipe is an R library that turns your script-based workflows into reproducible pipelines. It’s designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.</p>
+<p><strong>Key features:</strong> - <strong>Automatic dependency detection</strong> - determines script execution order from <code><a href="reference/file_in.html">file_in()</a></code> and <code><a href="reference/file_out.html">file_out()</a></code> calls - <strong>Incremental execution</strong> - only re-runs scripts when they or their dependencies change - <strong>Script-based workflow</strong> - no need to refactor existing code into functions</p>
 <div class="section level2">
 <h2 id="table-of-contents">Table of Contents<a class="anchor" aria-label="anchor" href="#table-of-contents"></a>
 </h2>
@@ -108,7 +109,7 @@
 <li>
 <strong>Run:</strong> From your R console or RStudio, simply call <code><a href="reference/run.html">bakepipe::run()</a></code>.</li>
 </ol>
-<p>Bakepipe will detect these file relationships and execute all your scripts in the correct order.</p>
+<p>Bakepipe will detect these file relationships and execute all your scripts in the correct order. On subsequent runs, only scripts with changes or stale dependencies will be re-executed, making your pipeline runs much faster.</p>
 </div>
 </div>
 <div class="section level2">
@@ -206,6 +207,18 @@
 <h3 id="how-is-script-execution-order-determined">How is script execution order determined?<a class="anchor" aria-label="anchor" href="#how-is-script-execution-order-determined"></a>
 </h3>
 <p>Bakepipe determines the correct execution order through static analysis of your R scripts, looking for <code>file_in</code> and <code>file_out</code> calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don’t need to refactor your scripts into functions or drastically change your script structure beyond adding the <code><a href="reference/file_in.html">file_in()</a></code> and <code><a href="reference/file_out.html">file_out()</a></code> calls.</p>
+</div>
+<div class="section level3">
+<h3 id="are-outputs-cached">Are outputs cached?<a class="anchor" aria-label="anchor" href="#are-outputs-cached"></a>
+</h3>
+<p>Yes! Bakepipe automatically performs incremental execution by tracking file checksums in a <code>.bakepipe.state</code> file. After the first run, Bakepipe will only re-run scripts that are “stale” - meaning either:</p>
+<ul>
+<li>The script itself has been modified</li>
+<li>Any of the script’s input files have been modified<br>
+</li>
+<li>Any upstream dependencies have been modified</li>
+</ul>
+<p>This makes subsequent runs much faster, as only the necessary scripts are executed. Fresh scripts are skipped with a visual indicator showing they’re up to date.</p>
 </div>
 </div>
 </div>
