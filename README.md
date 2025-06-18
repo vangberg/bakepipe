@@ -3,6 +3,7 @@
 Bakepipe is an R library that turns your script-based workflows into reproducible pipelines. It's designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.
 
 **Key features:**
+
 - **Automatic dependency detection** - determines script execution order from `file_in()` and `file_out()` calls
 - **Incremental execution** - only re-runs scripts when they or their dependencies change
 - **Script-based workflow** - no need to refactor existing code into functions
@@ -147,7 +148,82 @@ Bakepipe determines the correct execution order through static analysis of your 
 Yes! Bakepipe automatically performs incremental execution by tracking file checksums in a `.bakepipe.state` file. After the first run, Bakepipe will only re-run scripts that are "stale" - meaning either:
 
 - The script itself has been modified
-- Any of the script's input files have been modified  
+- Any of the script's input files have been modified
 - Any upstream dependencies have been modified
 
 This makes subsequent runs much faster, as only the necessary scripts are executed. Fresh scripts are skipped with a visual indicator showing they're up to date.
+
+### How does Bakepipe compare to other pipeline tools?
+
+I want to preface this comparison by saying that Bakepipe is much more limited in scope than other pipeline tools. It's not a replacement for tools like Snakemake or Nextflow, but rather a tool for simple workflows that don't need the complexity of those tools. Yet, I want to highlight some of the features that make Bakepipe unique.
+
+#### Snakemake
+
+With Snakemake, you would define the workflow from the walkthrough above as follows:
+
+```yaml
+rule all:
+    input: "plot1.png", "plot2.png"
+
+rule analysis:
+    input: "data.csv"
+    output: "analysis.csv"
+    shell: "Rscript analysis.R"
+
+rule plots:
+    input: "analysis.csv"
+    output: "plot1.png", "plot2.png"
+    shell: "Rscript plots.R"
+```
+
+And to run the pipeline, you would use the following command:
+
+```bash
+snakemake
+```
+
+Compared with Bakepipe, I think this adds friction. You need to do double bookkeeping, manually keeping the Snakefile and the scripts in sync.
+
+#### targets
+
+To implement the same workflow in [targets](https://docs.ropensci.org/targets/), you would need to refactor the scripts into functions, and then use the `tar_target` function to define the targets.
+
+```r
+# functions.R
+
+get_data <- function(file) {
+    read.csv(file)
+}
+
+analyze <- function(data) {
+    table(data)
+}
+
+plot1 <- function(data) {
+    plot <- ggplot(data, aes(x = variable, y = value)) + geom_point()
+    ggsave("plot1.png", plot)
+}
+
+plot2 <- function(data) {
+    ggplot(data, aes(x = variable, y = value)) + geom_point()
+    ggsave("plot2.png")
+}
+```
+
+```r
+# _targets.R
+
+library(targets)
+
+tar_source()
+
+list(
+    tar_target(file, "data.csv", format = "file"),
+    tar_target(data, get_data(file)),
+    tar_target(analysis, analyze(data)),
+    tar_target(plot1, plot1(analysis)),
+    tar_target(plot2, plot2(analysis)),
+)
+```
+
+In other words, to use `targets`, you need to abandon your script-based workflow and start writing functions. This in itself is not really a big change; worst case you could just wrap each script in a function. But in the process, you lose some of the advantages of a script-based workflow, namely the iterative and interactive development that R users often rely on.
