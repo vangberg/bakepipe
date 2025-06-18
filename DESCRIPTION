@@ -1,7 +1,7 @@
 Package: bakepipe
 Type: Package
 Title: Turn Script-Based Workflows into Reproducible Pipelines
-Version: 0.0.0.9000
+Version: 0.1
 Authors@R: person("Harry", "Vangberg", email = "harry@vangberg.name", role = c("aut", "cre"))
 Description: Bakepipe turns your script-based workflows into reproducible 
     pipelines. It's designed for scientists and analysts who use R and prefer 
