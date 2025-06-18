@@ -46,11 +46,11 @@ Bakepipe will detect these file relationships and execute all your scripts in th
 
 In our example, we have the following files:
 
-| File | Description |
-|------|-------------|
-| `sales.csv` | Daily sales data with product categories and revenue |
-| `analysis.R` | Calculates monthly sales summaries |
-| `plots.R` | Creates a monthly trend plot |
+| File         | Description                                          |
+| ------------ | ---------------------------------------------------- |
+| `sales.csv`  | Daily sales data with product categories and revenue |
+| `analysis.R` | Calculates monthly sales summaries                   |
+| `plots.R`    | Creates a monthly trend plot                         |
 
 The workflow looks like this:
 
@@ -70,8 +70,8 @@ library(bakepipe)
 library(dplyr)
 
 sales <- read.csv(file_in("sales.csv")) # Input file
-monthly <- sales %>% 
-  group_by(month, category) %>% 
+monthly <- sales %>%
+  group_by(month, category) %>%
   summarize(revenue = sum(revenue))
 write.csv(monthly, file_out("monthly_sales.csv")) # Output file
 ```
@@ -82,7 +82,7 @@ library(bakepipe)
 library(ggplot2)
 
 monthly <- read.csv(file_in("monthly_sales.csv")) # Input file
-ggplot(monthly, aes(month, revenue, color = category)) + 
+ggplot(monthly, aes(month, revenue, color = category)) +
   geom_line() +
   ggsave(file_out("monthly_trend.png")) # Output file
 ```
@@ -136,82 +136,3 @@ bakepipe::status()
 ### How is script execution order determined?
 
 Bakepipe determines the correct execution order through static analysis of your R scripts, looking for `file_in` and `file_out` calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don't need to refactor your scripts into functions or drastically change your script structure beyond adding the `file_in()` and `file_out()` calls.
-
-### Are outputs cached?
-
-Currently, Bakepipe does not perform any caching or checks to determine if a script needs to be re-run. When `bakepipe::run()` is called, all scripts in the pipeline graph are executed in their determined topological order every time. While this ensures reproducibility by always running the full analysis, it means computational steps are not skipped if inputs haven't changed. Caching and conditional execution based on file checks are planned features for future releases.
-
-### How does Bakepipe compare to other pipeline tools?
-
-I want to preface this comparison by saying that Bakepipe is much more limited in scope than other pipeline tools. It's not a replacement for tools like Snakemake or Nextflow, but rather a tool for simple workflows that don't need the complexity of those tools. Yet, I want to highlight some of the features that make Bakepipe unique.
-
-#### Snakemake
-
-With Snakemake, you would define the workflow from the walkthrough above as follows:
-
-```yaml
-rule all: 
-    input: "plot1.png", "plot2.png"
-
-rule analysis:
-    input: "data.csv"
-    output: "analysis.csv"
-    shell: "Rscript analysis.R"
-
-rule plots:
-    input: "analysis.csv"
-    output: "plot1.png", "plot2.png"
-    shell: "Rscript plots.R"
-```
-
-And to run the pipeline, you would use the following command:
-
-```bash
-snakemake
-```
-
-Compared with Bakepipe, I think this adds friction. You need to do double bookkeeping, manually keeping the Snakefile and the scripts in sync.
-
-#### targets
-
-To implement the same workflow in `targets`, you would need to refactor the scripts into functions, and then use the `tar_target` function to define the targets.
-
-```r
-# functions.R
-
-get_data <- function(file) {
-    read.csv(file)
-}
-
-analyze <- function(data) {
-    table(data)
-}
-
-plot1 <- function(data) {
-    plot <- ggplot(data, aes(x = variable, y = value)) + geom_point()
-    ggsave("plot1.png", plot)
-}
-
-plot2 <- function(data) {
-    ggplot(data, aes(x = variable, y = value)) + geom_point()
-    ggsave("plot2.png")
-}
-```
-
-```r
-# _targets.R
-
-library(targets)
-
-tar_source()
-
-list(
-    tar_target(file, "data.csv", format = "file"),
-    tar_target(data, get_data(file)),
-    tar_target(analysis, analyze(data)),
-    tar_target(plot1, plot1(analysis)),
-    tar_target(plot2, plot2(analysis)),
-)
-```
-
-In other words, to use `targets`, you need to abandon your script-based workflow and start writing functions. This in itself is not really a big change; worst case you could just wrap each script in a function. But in the process, you lose some of the advantages of a script-based workflow, namely the iterative and interactive development that R users often rely on.
