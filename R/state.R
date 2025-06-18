@@ -6,7 +6,6 @@
 #'
 #' @param state_file Path to the state file (typically ".bakepipe.state")
 #' @return Data frame with columns 'file' and 'stale' (logical)
-#' @export
 read_state <- function(state_file) {
   # Initialize empty state if file doesn't exist
   if (!file.exists(state_file)) {
@@ -58,7 +57,6 @@ read_state <- function(state_file) {
 #' @param state_file Path to the state file to write
 #'   (typically ".bakepipe.state")
 #' @param parse_data List from parse() function with 'scripts', 'inputs', 'outputs'
-#' @export
 write_state <- function(state_file, parse_data) {
   # Collect all unique files from parse_data
   all_files <- character(0)

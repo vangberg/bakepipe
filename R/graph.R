@@ -15,7 +15,6 @@
 #'     \item{edges: Data frame with 'from' and 'to' columns}
 #'   }
 #' @importFrom stats setNames
-#' @export
 #' @examples
 #' \dontrun{
 #' # Parse scripts and create dependency graph
@@ -236,7 +235,6 @@ detect_cycles <- function(graph_obj) {
 #' @param graph_obj Graph object from graph() function
 #' @param scripts_only Logical. If TRUE, returns only script nodes in order
 #' @return Character vector of file names in topological order
-#' @export
 #' @examples
 #' \dontrun{
 #' parsed <- parse()
@@ -306,7 +304,6 @@ topological_sort <- function(graph_obj, scripts_only = FALSE) {
 #' @param node Starting file to find descendants from
 #' @param scripts_only Logical. If TRUE, returns only script descendants
 #' @return Character vector of all descendant file names
-#' @export
 #' @examples
 #' \dontrun{
 #' parsed <- parse()
