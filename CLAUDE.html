@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">bakepipe</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,11 @@
 
 <p>This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.</p>
 <div class="section level2">
+<h2 id="notifications">Notifications<a class="anchor" aria-label="anchor" href="#notifications"></a></h2>
+<p>When you need my input ALWAYS notify me using the following command:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="ex">terminal-notifier</span> <span class="at">-message</span> <span class="st">"Claude Code needs your input"</span> <span class="at">-title</span> <span class="st">"Claude Code"</span> <span class="at">-sound</span> <span class="st">"default"</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="project-overview">Project Overview<a class="anchor" aria-label="anchor" href="#project-overview"></a></h2>
 <p>Bakepipe is an R library that turns script-based workflows into reproducible pipelines. It’s designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.</p>
 <p>The project is currently in early development phase (described as “vaporware” in README) and contains only documentation at this time.</p>
@@ -44,7 +49,7 @@
 <ul><li>
 <strong>file_in()</strong>: Function to mark input files in R scripts</li>
 <li>
-<strong>file_out()</strong>: Function to mark output files in R scripts<br></li>
+<strong>file_out()</strong>: Function to mark output files in R scripts</li>
 <li>
 <strong>run()</strong>: Function to execute the pipeline in topological order</li>
 <li>
@@ -56,8 +61,11 @@
 </div>
 <div class="section level2">
 <h2 id="development-workflow">Development Workflow<a class="anchor" aria-label="anchor" href="#development-workflow"></a></h2>
-<p>When implementing new features: 1. WRITE TESTS FIRST THAT DESCRIBE THE EXPECTED BEHAVIOR 2. Wait for user approval of the test before proceeding 3. Only after test is accepted, implement the actual functionality</p>
-</div>
+<p>When implementing new features:</p>
+<ol style="list-style-type: decimal"><li>WRITE TESTS FIRST THAT DESCRIBE THE EXPECTED BEHAVIOR</li>
+<li>Wait for user approval of the test before proceeding</li>
+<li>Only after test is accepted, implement the actual functionality</li>
+</ol></div>
 <div class="section level2">
 <h2 id="key-features-to-implement">Key Features to Implement<a class="anchor" aria-label="anchor" href="#key-features-to-implement"></a></h2>
 <ul><li>Static analysis of R scripts to detect file_in() and file_out() calls</li>
@@ -69,11 +77,6 @@
 <h2 id="testing-principles">Testing Principles<a class="anchor" aria-label="anchor" href="#testing-principles"></a></h2>
 <ul><li>Avoid mocks in tests when possible</li>
 </ul></div>
-<div class="section level2">
-<h2 id="notifications">Notifications<a class="anchor" aria-label="anchor" href="#notifications"></a></h2>
-<p>When Claude Code needs user input or attention, ALWAYS use terminal-notifier:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="ex">terminal-notifier</span> <span class="at">-message</span> <span class="st">"Claude Code needs your input"</span> <span class="at">-title</span> <span class="st">"Claude Code"</span> <span class="at">-sound</span> <span class="st">"default"</span></span></code></pre></div>
-</div>
 </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
