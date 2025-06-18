@@ -2,6 +2,11 @@
 
 Bakepipe is an R library that turns your script-based workflows into reproducible pipelines. It's designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.
 
+**Key features:**
+- **Automatic dependency detection** - determines script execution order from `file_in()` and `file_out()` calls
+- **Incremental execution** - only re-runs scripts when they or their dependencies change
+- **Script-based workflow** - no need to refactor existing code into functions
+
 ## Table of Contents
 
 - [Motivation](#motivation)
@@ -40,7 +45,7 @@ devtools::install_github("vangberg/bakepipe")
 2.  **Mark file relationships:** In your R scripts, use `file_in()` and `file_out()` to specify input and output files.
 3.  **Run:** From your R console or RStudio, simply call `bakepipe::run()`.
 
-Bakepipe will detect these file relationships and execute all your scripts in the correct order.
+Bakepipe will detect these file relationships and execute all your scripts in the correct order. On subsequent runs, only scripts with changes or stale dependencies will be re-executed, making your pipeline runs much faster.
 
 ## Example
 
@@ -136,3 +141,13 @@ bakepipe::status()
 ### How is script execution order determined?
 
 Bakepipe determines the correct execution order through static analysis of your R scripts, looking for `file_in` and `file_out` calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don't need to refactor your scripts into functions or drastically change your script structure beyond adding the `file_in()` and `file_out()` calls.
+
+### Are outputs cached?
+
+Yes! Bakepipe automatically performs incremental execution by tracking file checksums in a `.bakepipe.state` file. After the first run, Bakepipe will only re-run scripts that are "stale" - meaning either:
+
+- The script itself has been modified
+- Any of the script's input files have been modified  
+- Any upstream dependencies have been modified
+
+This makes subsequent runs much faster, as only the necessary scripts are executed. Fresh scripts are skipped with a visual indicator showing they're up to date.
