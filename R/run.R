@@ -5,6 +5,14 @@
 #' incremental execution.
 #'
 #' @return Character vector of files that were created or updated
+#' @examples
+#' \dontrun{
+#' # Execute the pipeline
+#' created_files <- bakepipe::run()
+#' 
+#' # The function returns paths of files that were created or updated
+#' print(created_files)
+#' }
 #' @export
 run <- function() {
   # Parse scripts to get dependencies

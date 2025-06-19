@@ -2,6 +2,16 @@
 #'
 #' Display the current state of all scripts in the pipeline (fresh/stale)
 #'
+#' @return NULL (invisibly). This function is called for its side effect of
+#'   displaying pipeline status information to the console.
+#' @examples
+#' \dontrun{
+#' # Display current pipeline status
+#' bakepipe::status()
+#' 
+#' # This will show which scripts are fresh (up-to-date) 
+#' # and which are stale (need to be re-run)
+#' }
 #' @export
 status <- function() {
   # Parse the pipeline to get script dependencies

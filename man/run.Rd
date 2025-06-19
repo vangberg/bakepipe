@@ -14,3 +14,12 @@ Execute scripts in the pipeline graph in topological order. Only runs
 scripts that are stale (have changed or have stale dependencies) for
 incremental execution.
 }
+\examples{
+\dontrun{
+# Execute the pipeline
+created_files <- bakepipe::run()
+
+# The function returns paths of files that were created or updated
+print(created_files)
+}
+}

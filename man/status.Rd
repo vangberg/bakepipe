@@ -6,6 +6,19 @@
 \usage{
 status()
 }
+\value{
+NULL (invisibly). This function is called for its side effect of
+displaying pipeline status information to the console.
+}
 \description{
 Display the current state of all scripts in the pipeline (fresh/stale)
+}
+\examples{
+\dontrun{
+# Display current pipeline status
+bakepipe::status()
+
+# This will show which scripts are fresh (up-to-date) 
+# and which are stale (need to be re-run)
+}
 }
