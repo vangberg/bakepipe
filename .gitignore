@@ -8,6 +8,7 @@ sample-project/report.txt
 .Rhistory
 .RData
 .Ruserdata
+..Rcheck/
 
 # OS files
 .DS_Store
