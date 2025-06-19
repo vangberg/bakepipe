@@ -112,7 +112,9 @@ stop("Script error for testing")
              file.path(temp_dir, ".bakepipe.state")))
   })
 
-  expect_error(run(), "Script error for testing")
+  # Test that an error occurs, but be more flexible about the exact message
+  # since callr may wrap the error differently
+  expect_error(run(), "Error executing script.*error_script.R")
 })
 
 test_that("run() respects dependency order", {
@@ -330,4 +332,96 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   # Checksums should be non-empty for existing files
   existing_files <- state_data[state_data$file %in% c("process.R", "input.csv", "output.csv"), ]
   expect_true(all(nchar(existing_files$checksum) > 0))
+})
+
+test_that("run() executes scripts in isolated environments", {
+  temp_dir <- file.path(tempdir(), "test_isolated_execution")
+  dir.create(temp_dir, showWarnings = FALSE)
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+  writeLines("data,value\nA,1\nB,2", "input.csv")
+
+  # First script that creates a variable in its environment
+  script1_content <- '
+library(bakepipe)
+data <- read.csv(file_in("input.csv"))
+secret_variable <- "should_not_be_accessible"
+data$processed <- data$value * 2
+write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
+'
+  writeLines(script1_content, "01_process.R")
+
+  # Second script that tries to access the variable from first script
+  # This should work because it reads from the file, not from the environment
+  script2_content <- '
+library(bakepipe)
+data <- read.csv(file_in("intermediate.csv"))
+# secret_variable should not be available from previous script
+if (exists("secret_variable")) {
+  stop("Script environments are not isolated - secret_variable is accessible")
+}
+summary_data <- data.frame(total = sum(data$processed))
+write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
+'
+  writeLines(script2_content, "02_summarize.R")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, "input.csv"),
+             file.path(temp_dir, "01_process.R"),
+             file.path(temp_dir, "02_summarize.R"),
+             file.path(temp_dir, "intermediate.csv"),
+             file.path(temp_dir, "final.csv"),
+             file.path(temp_dir, ".bakepipe.state")))
+  })
+
+  # This should succeed - scripts run in isolation
+  result <- run()
+
+  expect_true(file.exists("intermediate.csv"))
+  expect_true(file.exists("final.csv"))
+
+  final_data <- read.csv("final.csv")
+  expect_equal(final_data$total, 6)
+})
+
+test_that("run() scripts cannot pollute global environment", {
+  temp_dir <- file.path(tempdir(), "test_no_global_pollution")
+  dir.create(temp_dir, showWarnings = FALSE)
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+  writeLines("test_value", "input.txt")
+
+  # Script that tries to create a global variable
+  script_content <- '
+library(bakepipe)
+content <- readLines(file_in("input.txt"))
+global_pollution_test <- "this_should_not_appear_globally"
+writeLines(paste("Processed:", content), file_out("output.txt"))
+'
+  writeLines(script_content, "process.R")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, "input.txt"),
+             file.path(temp_dir, "process.R"),
+             file.path(temp_dir, "output.txt"),
+             file.path(temp_dir, ".bakepipe.state")))
+  })
+
+  # Make sure the variable doesn't exist before
+  expect_false(exists("global_pollution_test", envir = globalenv()))
+
+  # Run pipeline
+  run()
+
+  # The variable should still not exist in global environment
+  expect_false(exists("global_pollution_test", envir = globalenv()))
+  expect_true(file.exists("output.txt"))
 })

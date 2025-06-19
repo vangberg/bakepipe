@@ -81,8 +81,27 @@ run <- function() {
     start_time <- Sys.time()
     
     tryCatch({
-      source(script_name, local = TRUE)
+      # Run script in isolated R process using callr
+      result <- callr::r(
+        func = function(script_path) {
+          source(script_path, local = TRUE)
+        },
+        args = list(script_name),
+        show = FALSE,
+        stderr = "2>&1"
+      )
     }, error = function(e) {
+      # Extract the actual error message from the callr error
+      if (inherits(e, "callr_error") && !is.null(e$stderr)) {
+        # Parse stderr to find the actual error message
+        stderr_lines <- strsplit(e$stderr, "\n")[[1]]
+        error_line <- stderr_lines[grepl("Error:", stderr_lines)]
+        if (length(error_line) > 0) {
+          actual_error <- sub(".*Error: ", "", error_line[1])
+          stop("Error executing script '", script_name, "': ", actual_error)
+        }
+      }
+      # Fallback to original error message
       stop("Error executing script '", script_name, "': ", e$message)
     })
     
