@@ -18,3 +18,4 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 URL: https://vangberg.github.io/bakepipe/, https://github.com/vangberg/bakepipe
+BugReports: https://github.com/vangberg/bakepipe/issues
