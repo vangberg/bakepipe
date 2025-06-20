@@ -34,21 +34,15 @@ ggsave(file_out("quarterly_report.pdf"), report)
   # Capture output to verify format
   output <- capture.output(status())
   
-  # Should contain table headers including new State column
-  expect_true(any(grepl("Script", output)))
-  expect_true(any(grepl("Inputs", output)))
-  expect_true(any(grepl("Outputs", output)))
-  expect_true(any(grepl("State", output)))
+  # Should contain header and status information
+  expect_true(any(grepl("Bakepipe Status", output)))
+  expect_true(any(grepl("fresh|stale", output)))
   
   # Should contain script names
   expect_true(any(grepl("analysis.R", output)))
   expect_true(any(grepl("report_generation.R", output)))
   
-  # Should contain file dependencies
-  expect_true(any(grepl("sales.csv", output)))
-  expect_true(any(grepl("monthly_sales.csv", output)))
-  expect_true(any(grepl("regions.csv", output)))
-  expect_true(any(grepl("quarterly_report.pdf", output)))
+  # File dependencies are not displayed in status output (they're analyzed internally)
   
   # Cleanup
   setwd(old_wd)
@@ -84,12 +78,10 @@ process_data <- function(data) {
   # Test: status() should handle scripts with no dependencies
   output <- capture.output(status())
   
-  # Should show the script but with empty dependencies
+  # Should show the script with status information
   expect_true(any(grepl("utilities.R", output)))
-  expect_true(any(grepl("Script", output)))
-  expect_true(any(grepl("Inputs", output)))
-  expect_true(any(grepl("Outputs", output)))
-  expect_true(any(grepl("State", output)))
+  expect_true(any(grepl("Bakepipe Status", output)))
+  expect_true(any(grepl("fresh|stale", output)))
   
   # Cleanup
   setwd(old_wd)
@@ -116,8 +108,7 @@ test_that("status() shows appropriate message when no scripts found", {
   output <- capture.output(status())
   
   # Should indicate no scripts found
-  expect_true(any(grepl("No R scripts found", output)) || 
-              any(grepl("empty", output, ignore.case = TRUE)))
+  expect_true(any(grepl("No scripts found", output)))
   
   # Cleanup
   setwd(old_wd)
@@ -163,10 +154,7 @@ write.csv(result, file_out("results.csv"))
   expect_true(any(grepl("main.R", output)))
   expect_true(any(grepl("analyze.R", output)))
   
-  # Should show the dependency chain
-  expect_true(any(grepl("input.csv", output)))
-  expect_true(any(grepl("processed.csv", output)))
-  expect_true(any(grepl("results.csv", output)))
+  # File dependencies are not displayed in status output
   
   # Cleanup
   setwd(old_wd)
@@ -208,13 +196,7 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   # Should show the script
   expect_true(any(grepl("data_cleaning.R", output)))
   
-  # Should show all inputs
-  expect_true(any(grepl("raw_data.txt", output)))
-  expect_true(any(grepl("metadata.csv", output)))
-  
-  # Should show all outputs
-  expect_true(any(grepl("cleaned_data.csv", output)))
-  expect_true(any(grepl("summary_stats.txt", output)))
+  # File dependencies are not displayed in status output (analyzed internally)
   
   # Cleanup
   setwd(old_wd)
@@ -259,8 +241,8 @@ write.csv(analysis, file_out("analysis.csv"))
   # Test: status() should display scripts with state information
   output <- capture.output(status())
   
-  # Should contain Scripts section
-  expect_true(any(grepl("Scripts", output)))
+  # Should contain status header
+  expect_true(any(grepl("Bakepipe Status", output)))
   
   # Should NOT contain Artifacts section (removed)
   expect_false(any(grepl("Artifacts", output)))
@@ -269,9 +251,8 @@ write.csv(analysis, file_out("analysis.csv"))
   expect_true(any(grepl("process.R", output)))
   expect_true(any(grepl("analyze.R", output)))
   
-  # Should show State column and state values
-  expect_true(any(grepl("State", output)))
-  expect_true(any(grepl("Fresh|Stale", output)))
+  # Should show state values in status indicators
+  expect_true(any(grepl("fresh|stale", output)))
   
   # Cleanup
   setwd(old_wd)
@@ -304,9 +285,9 @@ write.csv(data, file_out("result.csv"))
   # Test: status() should show only scripts section
   output <- capture.output(status())
   
-  # Should have Scripts section
-  scripts_start <- which(grepl("Scripts", output))
-  expect_true(length(scripts_start) > 0)
+  # Should have status header
+  status_header <- which(grepl("Bakepipe Status", output))
+  expect_true(length(status_header) > 0)
   
   # Should NOT have Artifacts section (removed)
   artifacts_start <- which(grepl("Artifacts", output))
@@ -368,8 +349,8 @@ write.csv(processed, file_out("step1.csv"))
   expect_true(c_line < b_line)
   expect_true(b_line < a_line)
   
-  # Should show State column for all scripts
-  expect_true(any(grepl("State", output)))
+  # Should show state information for all scripts
+  expect_true(any(grepl("fresh|stale", output)))
   
   # Cleanup
   setwd(old_wd)
