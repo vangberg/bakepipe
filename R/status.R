@@ -19,13 +19,13 @@ status <- function() {
 
   # Handle empty pipeline
   if (length(pipeline_data$scripts) == 0) {
-    cat("\n📊 \033[1;36mBakepipe Status\033[0m\n")
+    cat("\n[STATUS] \033[1;36mBakepipe Status\033[0m\n")
     cat("\033[33m   No scripts found in pipeline\033[0m\n\n")
     return(invisible(NULL))
   }
 
   # Display header
-  cat("\n📊 \033[1;36mBakepipe Status\033[0m\n")
+  cat("\n[STATUS] \033[1;36mBakepipe Status\033[0m\n")
 
   # Display Scripts table with state information
   display_scripts_table(pipeline_data)
@@ -65,7 +65,7 @@ display_scripts_table <- function(pipeline_data) {
   # Display summary
   cat(paste0("\033[32m   ", fresh_count, " fresh script", if(fresh_count != 1) "s" else "", "\033[0m"))
   if (stale_count > 0) {
-    cat(paste0(" • \033[33m", stale_count, " stale script", if(stale_count != 1) "s" else "", "\033[0m"))
+    cat(paste0(" - \033[33m", stale_count, " stale script", if(stale_count != 1) "s" else "", "\033[0m"))
   }
   cat("\n\n")
 
@@ -78,9 +78,9 @@ display_scripts_table <- function(pipeline_data) {
     state <- state_vec[i]
     
     if (state == "fresh") {
-      cat(sprintf("\033[90m✓ %-*s \033[2m(fresh)\033[0m\n", max_width, script))
+      cat(sprintf("\033[90m[OK] %-*s \033[2m(fresh)\033[0m\n", max_width, script))
     } else {
-      cat(sprintf("\033[33m⚡ %-*s \033[2m(stale)\033[0m\n", max_width, script))
+      cat(sprintf("\033[33m[!] %-*s \033[2m(stale)\033[0m\n", max_width, script))
     }
   }
   

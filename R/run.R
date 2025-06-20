@@ -20,7 +20,7 @@ run <- function() {
 
   # Handle empty pipeline
   if (length(pipeline_data$scripts) == 0) {
-    cat("\n🥖 \033[1;36mBakepipe Pipeline\033[0m\n")
+    cat("\n[PIPELINE] \033[1;36mBakepipe Pipeline\033[0m\n")
     cat("\033[33m   No scripts found in pipeline\033[0m\n\n")
     return(character(0))
   }
@@ -46,7 +46,7 @@ run <- function() {
   scripts_to_skip <- all_scripts[!all_scripts %in% stale_scripts]
 
   # Print header
-  cat("\n🥖 \033[1;36mBakepipe Pipeline\033[0m\n")
+  cat("\n[PIPELINE] \033[1;36mBakepipe Pipeline\033[0m\n")
   if (length(scripts_to_run) > 0) {
     cat(paste0("\033[32m   Running ", length(scripts_to_run), " script",
                if(length(scripts_to_run) > 1) "s" else "", "\033[0m\n"))
@@ -62,7 +62,7 @@ run <- function() {
 
   # Print messages about scripts being skipped
   for (script_name in scripts_to_skip) {
-    cat(sprintf("\033[90m✓ %-*s \033[2m(fresh)\033[0m\n", max_width, script_name))
+    cat(sprintf("\033[90m[OK] %-*s \033[2m(fresh)\033[0m\n", max_width, script_name))
   }
 
   # Track files created during execution
@@ -124,7 +124,7 @@ run <- function() {
     } else {
       time_str <- sprintf("%.1fs", elapsed)
     }
-    cat(sprintf("\033[32m✓ %-*s \033[2m(%s)\033[0m\n", max_width, script_name, time_str))
+    cat(sprintf("\033[32m[OK] %-*s \033[2m(%s)\033[0m\n", max_width, script_name, time_str))
 
     # Check that expected output files were created
     for (output_file in output_files) {
@@ -139,7 +139,7 @@ run <- function() {
 
   # Print summary
   if (length(scripts_to_run) > 0 || length(created_files) > 0) {
-    cat("\n\033[1;36m📊 Summary\033[0m\n")
+    cat("\n\033[1;36m[SUMMARY]\033[0m\n")
     
     if (length(scripts_to_run) > 0) {
       total_time <- sum(script_times)
@@ -159,12 +159,12 @@ run <- function() {
                   length(created_files),
                   if(length(created_files) > 1) "s" else ""))
       for (file in sort(unique(created_files))) {
-        cat(sprintf("\033[2m     • %s\033[0m\n", file))
+        cat(sprintf("\033[2m     - %s\033[0m\n", file))
       }
     }
     cat("\n")
   } else {
-    cat("\n\033[32m✨ All scripts are up to date!\033[0m\n\n")
+    cat("\n\033[32m[OK] All scripts are up to date!\033[0m\n\n")
   }
 
   # Update state file after execution
