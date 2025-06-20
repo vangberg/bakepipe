@@ -57,6 +57,7 @@ In our example, we have the following files:
 | `sales.csv`  | Daily sales data with product categories and revenue |
 | `analysis.R` | Calculates monthly sales summaries                   |
 | `plots.R`    | Creates a monthly trend plot                         |
+| `report.R`   | Generates a PDF report from the monthly data         |
 
 The workflow looks like this:
 
@@ -65,7 +66,9 @@ graph LR
     data[(sales.csv)] -->|read by| analysis[analysis.R]
     analysis -->|writes| results[(monthly_sales.csv)]
     results -->|read by| plots[plots.R]
+    results -->|read by| report[report.R]
     plots -->|writes| plot{{monthly_trend.png}}
+    report -->|writes| pdf{{sales_report.pdf}}
 ```
 
 Here is what the scripts look like:
@@ -91,6 +94,17 @@ monthly <- read.csv(file_in("monthly_sales.csv")) # Input file
 ggplot(monthly, aes(month, revenue, color = category)) +
   geom_line() +
   ggsave(file_out("monthly_trend.png")) # Output file
+```
+
+```r
+# report.R
+library(bakepipe)
+library(rmarkdown)
+
+monthly <- read.csv(file_in("monthly_sales.csv")) # Input file
+render("report_template.Rmd", 
+       output_file = file_out("sales_report.pdf"),
+       params = list(data = monthly))
 ```
 
 `file_in` and `file_out` are used to mark the input and output of the script. They both return the path to the file, so they can be used directly when reading or writing. They don't actually read or write files themselves – they just mark file relationships so Bakepipe can figure out what needs to run when. This works seamlessly with any R data type or file format (e.g., `.csv`, `.rds`, `.fst`).
@@ -163,17 +177,22 @@ With Snakemake, you would define the workflow from the walkthrough above as foll
 
 ```yaml
 rule all:
-    input: "plot1.png", "plot2.png"
+    input: "monthly_trend.png", "sales_report.pdf"
 
 rule analysis:
-    input: "data.csv"
-    output: "analysis.csv"
+    input: "sales.csv"
+    output: "monthly_sales.csv"
     shell: "Rscript analysis.R"
 
 rule plots:
-    input: "analysis.csv"
-    output: "plot1.png", "plot2.png"
+    input: "monthly_sales.csv"
+    output: "monthly_trend.png"
     shell: "Rscript plots.R"
+
+rule report:
+    input: "monthly_sales.csv"
+    output: "sales_report.pdf"
+    shell: "Rscript report.R"
 ```
 
 And to run the pipeline, you would use the following command:
@@ -191,22 +210,27 @@ To implement the same workflow in [targets](https://docs.ropensci.org/targets/),
 ```r
 # functions.R
 
-get_data <- function(file) {
+get_sales_data <- function(file) {
     read.csv(file)
 }
 
-analyze <- function(data) {
-    table(data)
+analyze_sales <- function(data) {
+    data %>%
+        group_by(month, category) %>%
+        summarize(revenue = sum(revenue))
 }
 
-plot1 <- function(data) {
-    plot <- ggplot(data, aes(x = variable, y = value)) + geom_point()
-    ggsave("plot1.png", plot)
+create_trend_plot <- function(data) {
+    plot <- ggplot(data, aes(month, revenue, color = category)) + geom_line()
+    ggsave("monthly_trend.png", plot)
+    "monthly_trend.png"
 }
 
-plot2 <- function(data) {
-    ggplot(data, aes(x = variable, y = value)) + geom_point()
-    ggsave("plot2.png")
+generate_report <- function(data) {
+    render("report_template.Rmd", 
+           output_file = "sales_report.pdf",
+           params = list(data = data))
+    "sales_report.pdf"
 }
 ```
 
@@ -218,11 +242,11 @@ library(targets)
 tar_source()
 
 list(
-    tar_target(file, "data.csv", format = "file"),
-    tar_target(data, get_data(file)),
-    tar_target(analysis, analyze(data)),
-    tar_target(plot1, plot1(analysis)),
-    tar_target(plot2, plot2(analysis)),
+    tar_target(sales_file, "sales.csv", format = "file"),
+    tar_target(sales_data, get_sales_data(sales_file)),
+    tar_target(monthly_sales, analyze_sales(sales_data)),
+    tar_target(trend_plot, create_trend_plot(monthly_sales), format = "file"),
+    tar_target(report_pdf, generate_report(monthly_sales), format = "file")
 )
 ```
 
