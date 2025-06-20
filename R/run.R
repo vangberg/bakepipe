@@ -14,6 +14,7 @@
 #' print(created_files)
 #' }
 #' @export
+#' @importFrom callr r
 run <- function() {
   # Parse scripts to get dependencies
   pipeline_data <- parse()

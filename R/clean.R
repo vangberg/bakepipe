@@ -13,7 +13,7 @@
 #' }
 clean <- function() {
   # Parse all scripts to get dependencies
-  dependencies <- bakepipe:::parse()
+  dependencies <- parse()
 
   # If no scripts found, return empty vector
   if (length(dependencies$scripts) == 0) {

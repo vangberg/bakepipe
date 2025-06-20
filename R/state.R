@@ -6,6 +6,7 @@
 #'
 #' @param state_file Path to the state file (typically ".bakepipe.state")
 #' @return Data frame with columns 'file' and 'stale' (logical)
+#' @importFrom utils read.csv write.csv
 read_state <- function(state_file) {
   # Initialize empty state if file doesn't exist
   if (!file.exists(state_file)) {
@@ -17,7 +18,7 @@ read_state <- function(state_file) {
   }
 
   # Read existing state file
-  state_data <- read.csv(state_file, stringsAsFactors = FALSE)
+  state_data <- utils::read.csv(state_file, stringsAsFactors = FALSE)
 
   # Get current checksums for all files in state
   current_checksums <- character(0)
@@ -94,7 +95,7 @@ write_state <- function(state_file, parse_data) {
   }
 
   # Write to CSV file
-  write.csv(state_data, state_file, row.names = FALSE)
+  utils::write.csv(state_data, state_file, row.names = FALSE)
 }
 
 #' Compute MD5 checksum for a file

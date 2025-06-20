@@ -2,6 +2,7 @@
 sample-project/cleaned_data.csv
 sample-project/analysis_results.rds
 sample-project/report.txt
+sample-project/.bakepipe.state
 
 # R files
 .Rproj.user

@@ -9,3 +9,8 @@
 ^pkgdown$
 ^\.github$
 ^cran-comments\.md$
+^sample-project$
+^\.claude$
+^DEVELOPMENT\.md$
+^hooks$
+^LICENSE\.md$

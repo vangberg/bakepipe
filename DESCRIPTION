@@ -5,19 +5,17 @@ Version: 0.1
 Authors@R: person("Harry", "Vangberg", email = "harry@vangberg.name", role = c("aut", "cre", "cph"))
 Author: Harry Vangberg [aut, cre, cph]
 Maintainer: Harry Vangberg <harry@vangberg.name>
-Description: Bakepipe turns your script-based workflows into reproducible 
-    pipelines. It's designed for scientists and analysts who use R and prefer 
-    to keep their workflows in scripts, but need better management of file 
-    dependencies. The package automatically determines script execution order 
-    through static analysis of file_in() and file_out() calls.
+Description: Turn script-based workflows into reproducible
+  pipelines. Designed for scientists and analysts who use R and prefer
+  to keep their workflows in scripts, but need better management of file
+  dependencies. The package automatically determines script execution order
+  through static analysis of file_in() and file_out() calls.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-Imports:
-    callr
-Suggests: 
-    testthat (>= 3.0.0)
+Imports: callr
+Suggests: testthat (>= 3.0.0)
 Config/testthat/edition: 3
 URL: https://vangberg.github.io/bakepipe/, https://github.com/vangberg/bakepipe
 BugReports: https://github.com/vangberg/bakepipe/issues
