@@ -11,6 +11,7 @@
 #'     \item{outputs: Character vector of all files produced as outputs across all scripts}
 #'   }
 #' @keywords internal
+#' @importFrom fs path_rel
 #' @examples
 #' \dontrun{
 #' # Parse all scripts in the project
@@ -40,9 +41,7 @@ parse <- function() {
   # Parse each script
   for (script_path in script_paths) {
     # Get relative path for the result key
-    rel_path <- normalizePath(script_path)
-    rel_path <- sub(paste0("^", normalizePath(project_root), "/"), "", rel_path)
-    rel_path <- sub(paste0("^", normalizePath(project_root), "\\\\"), "", rel_path)
+    rel_path <- fs::path_rel(script_path, project_root)
     
     # Parse the script
     script_info <- parse_script(script_path)
