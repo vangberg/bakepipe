@@ -36,10 +36,7 @@ Bakepipe helps you manage this by automatically determining the execution order 
 ### Installation
 
 ```r
-# Install from CRAN
-install.packages("bakepipe")
-
-# Or install from GitHub using devtools
+# Install from GitHub using devtools
 devtools::install_github("vangberg/bakepipe")
 ```
 
