@@ -33,7 +33,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
              file.path(temp_dir, "final.csv")))
   })
 
-  result <- run()
+  result <- capture.output({result_value <- run()}); result <- result_value
 
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
@@ -58,7 +58,7 @@ test_that("run() returns empty vector when no scripts exist", {
     unlink(file.path(temp_dir, "_bakepipe.R"))
   })
 
-  result <- run()
+  result <- capture.output({result_value <- run()}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
@@ -86,7 +86,7 @@ cat("Processing", nrow(data), "rows\n")
              file.path(temp_dir, "process.R")))
   })
 
-  result <- run()
+  result <- capture.output({result_value <- run()}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
@@ -114,7 +114,7 @@ stop("Script error for testing")
 
   # Test that an error occurs, but be more flexible about the exact message
   # since callr may wrap the error differently
-  expect_error(run(), "Error executing script.*error_script.R")
+  expect_error(capture.output(run()), "Error executing script.*error_script.R")
 })
 
 test_that("run() respects dependency order", {
@@ -152,7 +152,7 @@ writeLines(paste("step2:", data), file_out("step2.txt"))
              file.path(temp_dir, ".bakepipe.state")))
   })
 
-  result <- run()
+  result <- capture.output({result_value <- run()}); result <- result_value
 
   expect_true(file.exists("step1.txt"))
   expect_true(file.exists("step2.txt"))
@@ -203,7 +203,7 @@ cat("Script 2 executed\n")
   })
 
   # First run - should run all scripts and create state file
-  result1 <- run()
+  result1 <- capture.output({result1_value <- run()}); result1 <- result1_value
   expect_true(file.exists(".bakepipe.state"))
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
@@ -215,7 +215,7 @@ cat("Script 2 executed\n")
   
   Sys.sleep(1) # Ensure time difference would be detectable
   
-  result2 <- run()
+  result2 <- capture.output({result2_value <- run()}); result2 <- result2_value
   
   # Files should not have been recreated (same modification times)
   expect_equal(file.info("intermediate.csv")$mtime, initial_intermediate_time)
@@ -262,7 +262,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   })
 
   # First run
-  run()
+  capture.output(run())
   
   # Modify input file
   Sys.sleep(1) # Ensure detectable time difference
@@ -275,7 +275,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   Sys.sleep(1)
   
   # Second run should detect change and re-run both scripts
-  result <- run()
+  result <- capture.output({result_value <- run()}); result <- result_value
   
   # Both output files should have been recreated
   expect_gt(file.info("intermediate.csv")$mtime, initial_intermediate_time)
@@ -316,7 +316,7 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   })
 
   # Run pipeline
-  run()
+  capture.output(run())
   
   # State file should exist and contain all relevant files
   expect_true(file.exists(".bakepipe.state"))
@@ -379,7 +379,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   })
 
   # This should succeed - scripts run in isolation
-  result <- run()
+  result <- capture.output({result_value <- run()}); result <- result_value
 
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
@@ -419,7 +419,7 @@ writeLines(paste("Processed:", content), file_out("output.txt"))
   expect_false(exists("global_pollution_test", envir = globalenv()))
 
   # Run pipeline
-  run()
+  capture.output(run())
 
   # The variable should still not exist in global environment
   expect_false(exists("global_pollution_test", envir = globalenv()))

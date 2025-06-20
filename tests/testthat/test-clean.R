@@ -34,14 +34,14 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   })
 
   # Run the pipeline to generate output files
-  run()
+  capture.output(run())
 
   # Verify files were created
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
 
   # Clean should remove output files
-  result <- clean()
+  result <- capture.output({result_value <- clean()}); result <- result_value
 
   # Verify all output files were removed
   expect_false(file.exists("intermediate.csv"))
@@ -71,7 +71,7 @@ test_that("clean() returns empty vector when no output files exist", {
     unlink(file.path(temp_dir, "_bakepipe.R"))
   })
 
-  result <- clean()
+  result <- capture.output({result_value <- clean()}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
@@ -97,7 +97,7 @@ file_out("nonexistent2.csv")
              file.path(temp_dir, "script.R")))
   })
 
-  result <- clean()
+  result <- capture.output({result_value <- clean()}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
@@ -125,7 +125,7 @@ cat("Processing", nrow(data), "rows\n")
              file.path(temp_dir, "process.R")))
   })
 
-  result <- clean()
+  result <- capture.output({result_value <- clean()}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
@@ -164,14 +164,14 @@ writeLines("overwritten", file_out("shared.txt"))
   })
 
   # Run pipeline to create outputs
-  run()
+  capture.output(run())
 
   # Verify both files exist
   expect_true(file.exists("shared.txt"))
   expect_true(file.exists("output1.txt"))
 
   # Clean should remove all output files, including shared.txt
-  result <- clean()
+  result <- capture.output({result_value <- clean()}); result <- result_value
 
   # Both output files should be removed
   expect_false(file.exists("shared.txt"))
