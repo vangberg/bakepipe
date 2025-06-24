@@ -4,11 +4,12 @@
 #' file_out() calls. Only string literals are supported as arguments to these
 #' functions.
 #'
-#' @return List with three elements:
+#' @return List with four elements:
 #'   \itemize{
-#'     \item{scripts: Named list where each element represents a script with 'inputs' and 'outputs'}
+#'     \item{scripts: Named list where each element represents a script with 'inputs', 'outputs', and 'externals'}
 #'     \item{inputs: Character vector of all files used as inputs across all scripts}
 #'     \item{outputs: Character vector of all files produced as outputs across all scripts}
+#'     \item{externals: Character vector of all external files referenced across all scripts}
 #'   }
 #' @keywords internal
 #' @importFrom fs path_rel
@@ -26,7 +27,8 @@ parse <- function() {
     return(list(
       scripts = list(),
       inputs = character(0),
-      outputs = character(0)
+      outputs = character(0),
+      externals = character(0)
     ))
   }
   
@@ -37,6 +39,7 @@ parse <- function() {
   scripts <- list()
   all_inputs <- character(0)
   all_outputs <- character(0)
+  all_externals <- character(0)
   
   # Parse each script
   for (script_path in script_paths) {
@@ -49,22 +52,24 @@ parse <- function() {
     # Add to scripts list
     scripts[[rel_path]] <- script_info
     
-    # Collect all inputs and outputs
+    # Collect all inputs, outputs, and externals
     all_inputs <- c(all_inputs, script_info$inputs)
     all_outputs <- c(all_outputs, script_info$outputs)
+    all_externals <- c(all_externals, script_info$externals)
   }
   
   return(list(
     scripts = scripts,
     inputs = unique(all_inputs),
-    outputs = unique(all_outputs)
+    outputs = unique(all_outputs),
+    externals = unique(all_externals)
   ))
 }
 
 #' Parse a single R script for file dependencies
 #'
 #' @param script_path Absolute path to the R script
-#' @return List with 'inputs' and 'outputs' character vectors
+#' @return List with 'inputs', 'outputs', and 'externals' character vectors
 #' @keywords internal
 parse_script <- function(script_path) {
   # Read the script content
@@ -77,27 +82,30 @@ parse_script <- function(script_path) {
     stop("Failed to parse R script: ", script_path, "\nError: ", e$message)
   })
   
-  # Extract file_in and file_out calls
+  # Extract file_in, file_out, and external_in calls
   inputs <- character(0)
   outputs <- character(0)
+  externals <- character(0)
   
   # Walk through all expressions in the parsed code
   for (expr in parsed) {
     inputs <- c(inputs, extract_file_calls(expr, "file_in"))
     outputs <- c(outputs, extract_file_calls(expr, "file_out"))
+    externals <- c(externals, extract_file_calls(expr, "external_in"))
   }
   
   # Remove duplicates and return
   list(
     inputs = unique(inputs),
-    outputs = unique(outputs)
+    outputs = unique(outputs),
+    externals = unique(externals)
   )
 }
 
-#' Extract file_in or file_out calls from an expression
+#' Extract file_in, file_out, or external_in calls from an expression
 #'
 #' @param expr Parsed R expression
-#' @param func_name Either "file_in" or "file_out"
+#' @param func_name Either "file_in", "file_out", or "external_in"
 #' @return Character vector of file paths found
 #' @keywords internal
 extract_file_calls <- function(expr, func_name) {

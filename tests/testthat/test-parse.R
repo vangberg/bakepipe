@@ -34,10 +34,11 @@ ggsave(file_out("quarterly_report.pdf"), report)
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
   expect_true("scripts" %in% names(result))
   expect_true("inputs" %in% names(result))
   expect_true("outputs" %in% names(result))
+  expect_true("externals" %in% names(result))
   
   # Check scripts structure
   scripts <- result$scripts
@@ -101,7 +102,7 @@ process_data <- function(data) {
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
   expect_true("scripts" %in% names(result))
   expect_length(result$scripts, 1)
   expect_true("utilities.R" %in% names(result$scripts))
@@ -111,9 +112,10 @@ process_data <- function(data) {
   expect_equal(utilities_result$inputs, character(0))
   expect_equal(utilities_result$outputs, character(0))
   
-  # Check top-level inputs and outputs are empty
+  # Check top-level inputs, outputs, and externals are empty
   expect_equal(result$inputs, character(0))
   expect_equal(result$outputs, character(0))
+  expect_equal(result$externals, character(0))
   
   # Cleanup
   setwd(old_wd)
@@ -197,7 +199,7 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
   
   multi_result <- result$scripts[["data_cleaning.R"]]
   expect_equal(sort(multi_result$inputs), c("metadata.csv", "raw_data.txt"))
@@ -231,7 +233,7 @@ test_that("parse() works with scripts in subdirectories", {
   # Create script in root
   root_script <- file.path(project_dir, "main.R")
   cat('
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 write.csv(data, file_out("processed.csv"))
 ', file = root_script)
   
@@ -250,7 +252,7 @@ write.csv(result, file_out("results.csv"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
   expect_true("main.R" %in% names(result$scripts))
   expect_true(file.path("analysis", "analyze.R") %in% names(result$scripts) || 
               "analysis/analyze.R" %in% names(result$scripts))
@@ -292,10 +294,11 @@ test_that("parse() returns empty list when no R scripts found", {
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # Still has scripts, inputs, outputs structure
+  expect_length(result, 4)  # Still has scripts, inputs, outputs, externals structure
   expect_length(result$scripts, 0)
   expect_length(result$inputs, 0)
   expect_length(result$outputs, 0)
+  expect_length(result$externals, 0)
   
   # Cleanup
   setwd(old_wd)
@@ -331,7 +334,7 @@ write.csv(data2, file_out(\"output_double.csv\"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
   
   quote_result <- result$scripts[["quotes.R"]]
   expect_equal(sort(quote_result$inputs), c("double_quote.csv", "single_quote.csv"))
@@ -359,7 +362,7 @@ test_that("parse() ignores file_in and file_out calls in comments", {
   comment_script <- file.path(project_dir, "comments.R")
   cat('
 # This is commented: file_in("ignored.csv")
-data <- read.csv(file_in("real_input.csv"))
+data <- read.csv(external_in("real_input.csv"))
 # write.csv(data, file_out("ignored_output.csv"))
 write.csv(data, file_out("real_output.csv"))
 ', file = comment_script)
@@ -371,11 +374,120 @@ write.csv(data, file_out("real_output.csv"))
   result <- parse()
   
   expect_type(result, "list")
-  expect_length(result, 3)  # scripts, inputs, outputs
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
   
   comment_result <- result$scripts[["comments.R"]]
-  expect_equal(comment_result$inputs, "real_input.csv")
+  expect_equal(comment_result$externals, "real_input.csv")
   expect_equal(comment_result$outputs, "real_output.csv")
+  
+  # Cleanup
+  setwd(old_wd)
+  unlink(project_dir, recursive = TRUE)
+})
+
+test_that("parse() handles external_in calls correctly", {
+  # Create a temporary directory structure
+  temp_dir <- tempfile()
+  old_wd <- getwd()
+  
+  # Setup: Create a temporary project directory
+  project_dir <- temp_dir
+  dir.create(project_dir, recursive = TRUE)
+  
+  # Create _bakepipe.R in the project root
+  bakepipe_file <- file.path(project_dir, "_bakepipe.R")
+  file.create(bakepipe_file)
+  
+  # Create script with external_in calls
+  external_script <- file.path(project_dir, "with_external.R")
+  cat('
+user_data <- read.csv(external_in("user_provided.csv"))
+config <- readRDS(external_in("config.rds"))
+processed <- process_data(user_data, config)
+write.csv(processed, file_out("processed.csv"))
+', file = external_script)
+  
+  # Change to project directory
+  setwd(project_dir)
+  
+  # Test: parse() should extract external_in calls
+  result <- parse()
+  
+  expect_type(result, "list")
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
+  expect_true("externals" %in% names(result))
+  
+  # Check script structure
+  script_result <- result$scripts[["with_external.R"]]
+  expect_type(script_result, "list")
+  expect_true("externals" %in% names(script_result))
+  
+  expect_equal(sort(script_result$externals), c("config.rds", "user_provided.csv"))
+  expect_equal(script_result$outputs, "processed.csv")
+  expect_equal(script_result$inputs, character(0))
+  
+  # Check top-level externals
+  expect_equal(sort(result$externals), c("config.rds", "user_provided.csv"))
+  
+  # Cleanup
+  setwd(old_wd)
+  unlink(project_dir, recursive = TRUE)
+})
+
+test_that("parse() handles mixed file_in, external_in, and file_out calls", {
+  # Create a temporary directory structure
+  temp_dir <- tempfile()
+  old_wd <- getwd()
+  
+  # Setup: Create a temporary project directory
+  project_dir <- temp_dir
+  dir.create(project_dir, recursive = TRUE)
+  
+  # Create _bakepipe.R in the project root
+  bakepipe_file <- file.path(project_dir, "_bakepipe.R")
+  file.create(bakepipe_file)
+  
+  # Create test scripts with mixed calls
+  script1_path <- file.path(project_dir, "clean.R")
+  cat('
+external_data <- read.csv(external_in("raw_data.csv"))
+cleaned <- clean_data(external_data)
+write.csv(cleaned, file_out("cleaned_data.csv"))
+', file = script1_path)
+  
+  script2_path <- file.path(project_dir, "analyze.R")
+  cat('
+cleaned_data <- read.csv(file_in("cleaned_data.csv"))
+config <- read.json(external_in("config.json"))
+analysis <- analyze(cleaned_data, config)
+write.csv(analysis, file_out("analysis_results.csv"))
+', file = script2_path)
+  
+  # Change to project directory
+  setwd(project_dir)
+  
+  # Test: parse() should handle all three types correctly
+  result <- parse()
+  
+  expect_type(result, "list")
+  expect_length(result, 4)  # scripts, inputs, outputs, externals
+  
+  # Check clean.R
+  clean_result <- result$scripts[["clean.R"]]
+  expect_equal(clean_result$externals, "raw_data.csv")
+  expect_equal(clean_result$inputs, character(0))
+  expect_equal(clean_result$outputs, "cleaned_data.csv")
+  
+  # Check analyze.R
+  analyze_result <- result$scripts[["analyze.R"]]
+  expect_equal(analyze_result$externals, "config.json")
+  expect_equal(analyze_result$inputs, "cleaned_data.csv")
+  expect_equal(analyze_result$outputs, "analysis_results.csv")
+  
+  # Check top-level aggregation
+  expect_equal(sort(result$externals), c("config.json", "raw_data.csv"))
+  expect_equal(result$inputs, "cleaned_data.csv")
+  expect_equal(sort(result$outputs), c("analysis_results.csv", "cleaned_data.csv"))
   
   # Cleanup
   setwd(old_wd)

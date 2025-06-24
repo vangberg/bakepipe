@@ -10,7 +10,7 @@ parse_script(script_path)
 \item{script_path}{Absolute path to the R script}
 }
 \value{
-List with 'inputs' and 'outputs' character vectors
+List with 'inputs', 'outputs', and 'externals' character vectors
 }
 \description{
 Parse a single R script for file dependencies

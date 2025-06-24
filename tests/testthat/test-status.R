@@ -14,7 +14,7 @@ test_that("status() displays pipeline table with inputs and outputs", {
   # Create test scripts with file_in and file_out calls
   analysis_script <- file.path(project_dir, "analysis.R")
   cat('
-data <- read.csv(file_in("sales.csv"))
+data <- read.csv(external_in("sales.csv"))
 result <- process_data(data)
 write.csv(result, file_out("monthly_sales.csv"))
 ', file = analysis_script)
@@ -22,7 +22,7 @@ write.csv(result, file_out("monthly_sales.csv"))
   report_script <- file.path(project_dir, "report_generation.R")
   cat('
 monthly_data <- read.csv(file_in("monthly_sales.csv"))
-region_data <- read.csv(file_in("regions.csv"))
+region_data <- read.csv(external_in("regions.csv"))
 report <- generate_report(monthly_data, region_data)
 ggsave(file_out("quarterly_report.pdf"), report)
 ', file = report_script)
@@ -132,7 +132,7 @@ test_that("status() works with scripts in subdirectories", {
   # Create script in root
   root_script <- file.path(project_dir, "main.R")
   cat('
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 write.csv(data, file_out("processed.csv"))
 ', file = root_script)
   
@@ -177,8 +177,8 @@ test_that("status() handles multiple inputs and outputs per script", {
   # Create script with multiple inputs and outputs
   multi_script <- file.path(project_dir, "data_cleaning.R")
   cat('
-raw_data <- read.table(file_in("raw_data.txt"))
-metadata <- read.csv(file_in("metadata.csv"))
+raw_data <- read.table(external_in("raw_data.txt"))
+metadata <- read.csv(external_in("metadata.csv"))
 
 cleaned <- clean_data(raw_data, metadata)
 summary_stats <- summarize(cleaned)
@@ -219,7 +219,7 @@ test_that("status() displays state information for scripts", {
   # Create test scripts
   script1 <- file.path(project_dir, "process.R")
   cat('
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 result <- process(data)
 write.csv(result, file_out("output.csv"))
 ', file = script1)
@@ -275,7 +275,7 @@ test_that("status() shows only scripts table (no artifacts table)", {
   # Create test script
   script1 <- file.path(project_dir, "example.R")
   cat('
-data <- read.csv(file_in("data.csv"))
+data <- read.csv(external_in("data.csv"))
 write.csv(data, file_out("result.csv"))
 ', file = script1)
   
@@ -329,7 +329,7 @@ write.csv(intermediate, file_out("step2.csv"))
   
   script_c <- file.path(project_dir, "c_first.R")
   cat('
-raw <- read.csv(file_in("raw.csv"))
+raw <- read.csv(external_in("raw.csv"))
 processed <- initial_process(raw)
 write.csv(processed, file_out("step1.csv"))
 ', file = script_c)

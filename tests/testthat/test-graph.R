@@ -3,20 +3,24 @@ test_that("graph() creates correct DAG structure from parse output", {
   parse_data <- list(
     scripts = list(
       "analysis.R" = list(
-        inputs = c("sales.csv"),
-        outputs = c("monthly_sales.csv")
+        inputs = character(0),
+        outputs = c("monthly_sales.csv"),
+        externals = c("sales.csv")
       ),
       "report_generation.R" = list(
-        inputs = c("monthly_sales.csv", "regions.csv"),
-        outputs = c("quarterly_report.pdf")
+        inputs = c("monthly_sales.csv"),
+        outputs = c("quarterly_report.pdf"),
+        externals = c("regions.csv")
       ),
       "data_cleaning.R" = list(
-        inputs = c("raw_data.txt"),
-        outputs = c("cleaned_data.csv", "summary_stats.txt")
+        inputs = character(0),
+        outputs = c("cleaned_data.csv", "summary_stats.txt"),
+        externals = c("raw_data.txt")
       )
     ),
-    inputs = c("sales.csv", "monthly_sales.csv", "regions.csv", "raw_data.txt"),
-    outputs = c("monthly_sales.csv", "quarterly_report.pdf", "cleaned_data.csv", "summary_stats.txt")
+    inputs = c("monthly_sales.csv"),
+    outputs = c("monthly_sales.csv", "quarterly_report.pdf", "cleaned_data.csv", "summary_stats.txt"),
+    externals = c("sales.csv", "regions.csv", "raw_data.txt")
   )
   
   graph <- graph(parse_data)
@@ -49,9 +53,9 @@ test_that("graph() creates correct DAG structure from parse output", {
   
   # Check node types
   expect_equal(nodes$type[nodes$file == "analysis.R"], "script")
-  expect_equal(nodes$type[nodes$file == "sales.csv"], "input")
-  expect_equal(nodes$type[nodes$file == "regions.csv"], "input")
-  expect_equal(nodes$type[nodes$file == "raw_data.txt"], "input")
+  expect_equal(nodes$type[nodes$file == "sales.csv"], "external")
+  expect_equal(nodes$type[nodes$file == "regions.csv"], "external")
+  expect_equal(nodes$type[nodes$file == "raw_data.txt"], "external")
   expect_equal(nodes$type[nodes$file == "monthly_sales.csv"], "output")
   expect_equal(nodes$type[nodes$file == "quarterly_report.pdf"], "output")
   expect_equal(nodes$type[nodes$file == "cleaned_data.csv"], "output")
@@ -77,19 +81,23 @@ test_that("graph() detects cyclic dependencies", {
     scripts = list(
       "script_a.R" = list(
         inputs = c("file_c.csv"),
-        outputs = c("file_a.csv")
+        outputs = c("file_a.csv"),
+        externals = character(0)
       ),
       "script_b.R" = list(
         inputs = c("file_a.csv"),
-        outputs = c("file_b.csv")
+        outputs = c("file_b.csv"),
+        externals = character(0)
       ),
       "script_c.R" = list(
         inputs = c("file_b.csv"),
-        outputs = c("file_c.csv")
+        outputs = c("file_c.csv"),
+        externals = character(0)
       )
     ),
     inputs = c("file_c.csv", "file_a.csv", "file_b.csv"),
-    outputs = c("file_a.csv", "file_b.csv", "file_c.csv")
+    outputs = c("file_a.csv", "file_b.csv", "file_c.csv"),
+    externals = character(0)
   )
   
   expect_error(graph(parse_data), "Cycle detected")
@@ -100,16 +108,19 @@ test_that("graph() validates single producer per artifact", {
   parse_data <- list(
     scripts = list(
       "script1.R" = list(
-        inputs = c("input.csv"),
-        outputs = c("duplicate_output.csv")
+        inputs = character(0),
+        outputs = c("duplicate_output.csv"),
+        externals = c("input.csv")
       ),
       "script2.R" = list(
-        inputs = c("other_input.csv"),
-        outputs = c("duplicate_output.csv")
+        inputs = character(0),
+        outputs = c("duplicate_output.csv"),
+        externals = c("other_input.csv")
       )
     ),
-    inputs = c("input.csv", "other_input.csv"),
-    outputs = c("duplicate_output.csv")
+    inputs = character(0),
+    outputs = c("duplicate_output.csv"),
+    externals = c("input.csv", "other_input.csv")
   )
   
   expect_error(graph(parse_data), "multiple producers")
@@ -119,16 +130,19 @@ test_that("graph() supports topological sorting", {
   parse_data <- list(
     scripts = list(
       "analysis.R" = list(
-        inputs = c("sales.csv"),
-        outputs = c("monthly_sales.csv")
+        inputs = character(0),
+        outputs = c("monthly_sales.csv"),
+        externals = c("sales.csv")
       ),
       "report_generation.R" = list(
-        inputs = c("monthly_sales.csv", "regions.csv"),
-        outputs = c("quarterly_report.pdf")
+        inputs = c("monthly_sales.csv"),
+        outputs = c("quarterly_report.pdf"),
+        externals = c("regions.csv")
       )
     ),
-    inputs = c("sales.csv", "monthly_sales.csv", "regions.csv"),
-    outputs = c("monthly_sales.csv", "quarterly_report.pdf")
+    inputs = c("monthly_sales.csv"),
+    outputs = c("monthly_sales.csv", "quarterly_report.pdf"),
+    externals = c("sales.csv", "regions.csv")
   )
   
   graph_obj <- graph(parse_data)
@@ -150,16 +164,19 @@ test_that("graph() finds descendants for stale marking", {
   parse_data <- list(
     scripts = list(
       "analysis.R" = list(
-        inputs = c("sales.csv"),
-        outputs = c("monthly_sales.csv")
+        inputs = character(0),
+        outputs = c("monthly_sales.csv"),
+        externals = c("sales.csv")
       ),
       "report_generation.R" = list(
-        inputs = c("monthly_sales.csv", "regions.csv"),
-        outputs = c("quarterly_report.pdf")
+        inputs = c("monthly_sales.csv"),
+        outputs = c("quarterly_report.pdf"),
+        externals = c("regions.csv")
       )
     ),
-    inputs = c("sales.csv", "monthly_sales.csv", "regions.csv"),
-    outputs = c("monthly_sales.csv", "quarterly_report.pdf")
+    inputs = c("monthly_sales.csv"),
+    outputs = c("monthly_sales.csv", "quarterly_report.pdf"),
+    externals = c("sales.csv", "regions.csv")
   )
   
   graph_obj <- graph(parse_data)
@@ -229,19 +246,23 @@ test_that("topological_sort() returns scripts in dependency order", {
     scripts = list(
       "step3.R" = list(
         inputs = c("intermediate2.csv"),
-        outputs = c("final.csv")
+        outputs = c("final.csv"),
+        externals = character(0)
       ),
       "step1.R" = list(
-        inputs = c("raw.csv"),
-        outputs = c("intermediate1.csv")
+        inputs = character(0),
+        outputs = c("intermediate1.csv"),
+        externals = c("raw.csv")
       ),
       "step2.R" = list(
         inputs = c("intermediate1.csv"),
-        outputs = c("intermediate2.csv")
+        outputs = c("intermediate2.csv"),
+        externals = character(0)
       )
     ),
-    inputs = c("intermediate2.csv", "raw.csv", "intermediate1.csv"),
-    outputs = c("final.csv", "intermediate1.csv", "intermediate2.csv")
+    inputs = c("intermediate2.csv", "intermediate1.csv"),
+    outputs = c("final.csv", "intermediate1.csv", "intermediate2.csv"),
+    externals = c("raw.csv")
   )
   
   graph_obj <- graph(parse_data)
@@ -256,12 +277,13 @@ test_that("topological_sort() returns scripts in dependency order", {
 test_that("graph() with state_obj marks nodes as stale correctly", {
   parse_data <- list(
     scripts = list(
-      "script1.R" = list(inputs = c("input.csv"), outputs = c("intermediate.csv")),
-      "script2.R" = list(inputs = c("intermediate.csv"), outputs = c("output.csv")),
-      "script3.R" = list(inputs = c("other.csv"), outputs = c("final.csv"))
+      "script1.R" = list(inputs = character(0), outputs = c("intermediate.csv"), externals = c("input.csv")),
+      "script2.R" = list(inputs = c("intermediate.csv"), outputs = c("output.csv"), externals = character(0)),
+      "script3.R" = list(inputs = character(0), outputs = c("final.csv"), externals = c("other.csv"))
     ),
-    inputs = c("input.csv", "intermediate.csv", "other.csv"),
-    outputs = c("intermediate.csv", "output.csv", "final.csv")
+    inputs = c("intermediate.csv"),
+    outputs = c("intermediate.csv", "output.csv", "final.csv"),
+    externals = c("input.csv", "other.csv")
   )
   
   # Create state object with mixed fresh/stale files (new data frame format)
@@ -295,10 +317,11 @@ test_that("graph() with state_obj marks nodes as stale correctly", {
 test_that("graph() without state_obj works as before", {
   parse_data <- list(
     scripts = list(
-      "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv"))
+      "script1.R" = list(inputs = character(0), outputs = c("output.csv"), externals = c("input.csv"))
     ),
-    inputs = c("input.csv"),
-    outputs = c("output.csv")
+    inputs = character(0),
+    outputs = c("output.csv"),
+    externals = c("input.csv")
   )
   
   # Should work without state_obj parameter - all nodes should be stale
@@ -315,11 +338,12 @@ test_that("graph() without state_obj works as before", {
 test_that("graph() marks all nodes as fresh when no stale files", {
   parse_data <- list(
     scripts = list(
-      "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv")),
-      "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"))
+      "script1.R" = list(inputs = character(0), outputs = c("output.csv"), externals = c("input.csv")),
+      "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"), externals = character(0))
     ),
-    inputs = c("input.csv", "output.csv"),
-    outputs = c("output.csv", "final.csv")
+    inputs = c("output.csv"),
+    outputs = c("output.csv", "final.csv"),
+    externals = c("input.csv")
   )
   
   # State object with no stale files (new data frame format)
@@ -338,11 +362,12 @@ test_that("graph() marks all nodes as fresh when no stale files", {
 test_that("graph() marks nodes as stale when files not in state", {
   parse_data <- list(
     scripts = list(
-      "script1.R" = list(inputs = c("input.csv"), outputs = c("output.csv")),
-      "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"))
+      "script1.R" = list(inputs = character(0), outputs = c("output.csv"), externals = c("input.csv")),
+      "script2.R" = list(inputs = c("output.csv"), outputs = c("final.csv"), externals = character(0))
     ),
-    inputs = c("input.csv", "output.csv"),
-    outputs = c("output.csv", "final.csv")
+    inputs = c("output.csv"),
+    outputs = c("output.csv", "final.csv"),
+    externals = c("input.csv")
   )
   
   # State object with some files marked as stale (new data frame format)
@@ -365,12 +390,13 @@ test_that("graph() propagates staleness correctly via DFS", {
   # Linear pipeline: script1 -> script2 -> script3
   parse_data <- list(
     scripts = list(
-      "script1.R" = list(inputs = c("raw.csv"), outputs = c("clean.csv")),
-      "script2.R" = list(inputs = c("clean.csv"), outputs = c("processed.csv")),
-      "script3.R" = list(inputs = c("processed.csv"), outputs = c("final.csv"))
+      "script1.R" = list(inputs = character(0), outputs = c("clean.csv"), externals = c("raw.csv")),
+      "script2.R" = list(inputs = c("clean.csv"), outputs = c("processed.csv"), externals = character(0)),
+      "script3.R" = list(inputs = c("processed.csv"), outputs = c("final.csv"), externals = character(0))
     ),
-    inputs = c("raw.csv", "clean.csv", "processed.csv"),
-    outputs = c("clean.csv", "processed.csv", "final.csv")
+    inputs = c("clean.csv", "processed.csv"),
+    outputs = c("clean.csv", "processed.csv", "final.csv"),
+    externals = c("raw.csv")
   )
   
   # State where only script1.R is stale (new data frame format)
@@ -395,12 +421,13 @@ test_that("graph() handles disconnected components correctly", {
   # Two independent pipelines
   parse_data <- list(
     scripts = list(
-      "pipeline1_step1.R" = list(inputs = c("data1.csv"), outputs = c("result1.csv")),
-      "pipeline1_step2.R" = list(inputs = c("result1.csv"), outputs = c("final1.csv")),
-      "pipeline2_step1.R" = list(inputs = c("data2.csv"), outputs = c("final2.csv"))
+      "pipeline1_step1.R" = list(inputs = character(0), outputs = c("result1.csv"), externals = c("data1.csv")),
+      "pipeline1_step2.R" = list(inputs = c("result1.csv"), outputs = c("final1.csv"), externals = character(0)),
+      "pipeline2_step1.R" = list(inputs = character(0), outputs = c("final2.csv"), externals = c("data2.csv"))
     ),
-    inputs = c("data1.csv", "result1.csv", "data2.csv"),
-    outputs = c("result1.csv", "final1.csv", "final2.csv")
+    inputs = c("result1.csv"),
+    outputs = c("result1.csv", "final1.csv", "final2.csv"),
+    externals = c("data1.csv", "data2.csv")
   )
   
   # Only pipeline1 has stale data (new data frame format)

@@ -65,9 +65,10 @@ write_state <- function(state_file, parse_data) {
   # Add script names
   all_files <- c(all_files, names(parse_data$scripts))
   
-  # Add all inputs and outputs
+  # Add all inputs, outputs, and externals
   all_files <- c(all_files, parse_data$inputs)
   all_files <- c(all_files, parse_data$outputs)
+  all_files <- c(all_files, parse_data$externals)
 
   all_files <- unique(all_files)
 

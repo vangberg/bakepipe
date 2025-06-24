@@ -50,6 +50,9 @@ graph <- function(parse_data, state_obj = NULL) {
   # Validate single producer per artifact
   validate_single_producer(graph_obj)
   
+  # Validate input dependencies
+  validate_input_dependencies(graph_obj)
+  
   # Detect cycles
   detect_cycles(graph_obj)
   
@@ -83,6 +86,46 @@ validate_single_producer <- function(graph_obj) {
   }
 }
 
+#' Validate that input nodes have corresponding producers
+#'
+#' Ensures that every input node (files referenced by file_in()) has incoming edges,
+#' meaning they are produced by some script in the pipeline. External files
+#' marked with external_in() are not included in input nodes.
+#'
+#' @param graph_obj Graph object from graph() function
+#' @keywords internal
+validate_input_dependencies <- function(graph_obj) {
+  nodes <- graph_obj$nodes
+  edges <- graph_obj$edges
+
+  # Find input nodes (type="input")
+  input_nodes <- nodes$file[nodes$type == "input"]
+
+  if (length(input_nodes) == 0) {
+    return(TRUE)
+  }
+
+  # For each input node, check if it has incoming edges
+  orphaned_inputs <- character(0)
+  for (input_file in input_nodes) {
+    # Check if this input has any incoming edges
+    has_incoming <- any(edges$to == input_file)
+    if (!has_incoming) {
+      orphaned_inputs <- c(orphaned_inputs, input_file)
+    }
+  }
+
+  if (length(orphaned_inputs) > 0) {
+    stop("Pipeline validation failed: The following file_in() calls reference files that are not produced by any file_out() call:\n",
+         paste("  -", orphaned_inputs, collapse = "\n"),
+         "\n\nEither:\n",
+         "1. Add a script that produces these files with file_out(), or\n",
+         "2. Change file_in() to external_in() if these are external files provided by the user")
+  }
+
+  TRUE
+}
+
 #' Build file nodes from graph structure and parse data
 #'
 #' Creates nodes for all files with types determined from parse data:
@@ -103,6 +146,7 @@ build_file_nodes <- function(parse_data, edges, state_obj = NULL) {
   scripts <- names(parse_data$scripts)
   inputs <- setdiff(parse_data$inputs, parse_data$outputs)
   outputs <- parse_data$outputs
+  externals <- parse_data$externals
   
   # Create types vector
   file_types <- character(length(all_files))
@@ -110,6 +154,8 @@ build_file_nodes <- function(parse_data, edges, state_obj = NULL) {
     file <- all_files[i]
     if (file %in% scripts) {
       file_types[i] <- "script"
+    } else if (file %in% externals) {
+      file_types[i] <- "external"
     } else if (file %in% inputs) {
       file_types[i] <- "input"
     } else if (file %in% outputs) {
@@ -160,6 +206,15 @@ build_file_edges <- function(scripts_data) {
     for (input_file in script_data$inputs) {
       edges <- rbind(edges, data.frame(
         from = input_file,
+        to = script_name,
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    # Create edges from external files to script
+    for (external_file in script_data$externals) {
+      edges <- rbind(edges, data.frame(
+        from = external_file,
         to = script_name,
         stringsAsFactors = FALSE
       ))
