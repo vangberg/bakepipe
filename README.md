@@ -16,7 +16,8 @@ Bakepipe is an R library that turns your script-based workflows into reproducibl
   - [Your First Pipeline](#your-first-pipeline)
 - [Example](#example)
 - [API](#api)
-  - [Mark input](#mark-input)
+  - [Mark external input](#mark-external-input)
+  - [Mark internal input](#mark-internal-input)
   - [Mark output](#mark-output)
   - [Run pipeline](#run-pipeline)
   - [Show pipeline status](#show-pipeline-status)
@@ -43,7 +44,7 @@ devtools::install_github("vangberg/bakepipe")
 ### Your First Pipeline
 
 1.  **Create project root marker:** Create an empty `_bakepipe.R` file in your project root directory.
-2.  **Mark file relationships:** In your R scripts, use `file_in()` and `file_out()` to specify input and output files.
+2.  **Mark file relationships:** In your R scripts, use `external_in()` for external files, `file_in()` for pipeline-internal files, and `file_out()` to specify output files.
 3.  **Run:** From your R console or RStudio, simply call `bakepipe::run()`.
 
 Bakepipe will detect these file relationships and execute all your scripts in the correct order. On subsequent runs, only scripts with changes or stale dependencies will be re-executed, making your pipeline runs much faster.
@@ -78,7 +79,7 @@ Here is what the scripts look like:
 library(bakepipe)
 library(dplyr)
 
-sales <- read.csv(file_in("sales.csv")) # Input file
+sales <- read.csv(external_in("sales.csv")) # External input file
 monthly <- sales %>%
   group_by(month, category) %>%
   summarize(revenue = sum(revenue))
@@ -107,7 +108,7 @@ render("report_template.Rmd",
        params = list(data = monthly))
 ```
 
-`file_in` and `file_out` are used to mark the input and output of the script. They both return the path to the file, so they can be used directly when reading or writing. They don't actually read or write files themselves – they just mark file relationships so Bakepipe can figure out what needs to run when. This works seamlessly with any R data type or file format (e.g., `.csv`, `.rds`, `.fst`).
+`external_in`, `file_in` and `file_out` are used to mark the input and output of the script. They all return the path to the file, so they can be used directly when reading or writing. They don't actually read or write files themselves – they just mark file relationships so Bakepipe can figure out what needs to run when. This works seamlessly with any R data type or file format (e.g., `.csv`, `.rds`, `.fst`).
 
 To execute your pipeline:
 
@@ -119,9 +120,20 @@ This will execute all your scripts in the right order every time it's called, an
 
 ## API
 
-### Mark input
+### Mark external input
 
-To mark a file as input, use `bakepipe::file_in("path/to/file")`. `file_in(path)` returns `path`, so it can be used directly when reading the file:
+To mark a file as external input that is provided by the user (not produced by any script in the pipeline), use `bakepipe::external_in("path/to/file")`. `external_in(path)` returns `path`, so it can be used directly when reading the file:
+
+```r
+raw_data <- read.csv(bakepipe::external_in("raw_data.csv"))
+config <- readRDS(bakepipe::external_in("config.rds"))
+```
+
+Use `external_in()` for files like raw datasets, configuration files, or any input that exists outside your pipeline's processing workflow.
+
+### Mark internal input
+
+To mark a file as input that is produced by another script in the pipeline, use `bakepipe::file_in("path/to/file")`. `file_in(path)` returns `path`, so it can be used directly when reading the file:
 
 ```r
 data <- read.csv(bakepipe::file_in("data.csv"))
@@ -155,7 +167,7 @@ bakepipe::status()
 
 ### How is script execution order determined?
 
-Bakepipe determines the correct execution order through static analysis of your R scripts, looking for `file_in` and `file_out` calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don't need to refactor your scripts into functions or drastically change your script structure beyond adding the `file_in()` and `file_out()` calls.
+Bakepipe determines the correct execution order through static analysis of your R scripts, looking for `external_in`, `file_in` and `file_out` calls. It parses the scripts without executing them to build an execution graph, which it then uses to determine the proper sequence. This static analysis means you don't need to refactor your scripts into functions or drastically change your script structure beyond adding the `external_in()`, `file_in()` and `file_out()` calls.
 
 ### Are outputs cached?
 
