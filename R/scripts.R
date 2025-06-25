@@ -4,11 +4,6 @@
 #' The project root is determined by bakepipe::root().
 #'
 #' @return Character vector of absolute paths to .R files
-#' @examples
-#' \dontrun{
-#' # Get all R scripts in the project
-#' all_scripts <- scripts()
-#' }
 scripts <- function() {
   project_root <- root()
 

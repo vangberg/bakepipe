@@ -19,10 +19,3 @@ Returns files in topological order using Kahn's algorithm. Files will
 appear in an order where all dependencies come before the file.
 Only returns scripts in execution order when filtering by type.
 }
-\examples{
-\dontrun{
-parsed <- parse()
-graph_obj <- graph(parsed)
-execution_order <- topological_sort(graph_obj, scripts_only = TRUE)
-}
-}

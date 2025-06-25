@@ -4,7 +4,10 @@
 \alias{run}
 \title{Run pipeline}
 \usage{
-run()
+run(verbose = TRUE)
+}
+\arguments{
+\item{verbose}{Logical. If TRUE (default), prints progress messages to console.}
 }
 \value{
 Character vector of files that were created or updated
@@ -15,11 +18,23 @@ scripts that are stale (have changed or have stale dependencies) for
 incremental execution.
 }
 \examples{
-\dontrun{
+# Copy sample project to temp directory
+temp_dir <- tempfile()
+dir.create(temp_dir)
+sample_proj <- system.file("extdata", "sample-project", package = "bakepipe")
+file.copy(sample_proj, temp_dir, recursive = TRUE)
+
+# Change to the sample project directory
+old_wd <- getwd()
+setwd(file.path(temp_dir, "sample-project"))
+
 # Execute the pipeline
-created_files <- bakepipe::run()
+created_files <- run()
 
 # The function returns paths of files that were created or updated
 print(created_files)
-}
+
+# Restore working directory and clean up
+setwd(old_wd)
+unlink(temp_dir, recursive = TRUE)
 }

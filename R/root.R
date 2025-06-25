@@ -4,11 +4,6 @@
 #' searching upward from the current working directory.
 #'
 #' @return Character string with the absolute path to the project root
-#' @examples
-#' \dontrun{
-#' # Get the project root directory
-#' project_root <- root()
-#' }
 root <- function() {
   current_dir <- getwd()
   

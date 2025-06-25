@@ -10,11 +10,13 @@
 #' @return The file path (unchanged)
 #' @export
 #' @examples
-#' \dontrun{
-#' # Mark a file as external input and use it directly when reading
-#' user_data <- read.csv(external_in("user_data.csv"))
-#' config <- readRDS(external_in("config.rds"))
-#' }
+#' # In a bakepipe script, mark a file as external input and use it directly
+#' # user_data <- read.csv(external_in("input.csv"))
+#' # config <- readRDS(external_in("config.rds"))
+#' 
+#' # The function simply returns the path unchanged
+#' file_path <- external_in("input.csv")
+#' print(file_path)  # "input.csv"
 external_in <- function(path) {
   path
 }

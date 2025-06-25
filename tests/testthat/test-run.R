@@ -1,4 +1,4 @@
-test_that("run() executes scripts in topological order", {
+test_that("run(verbose = FALSE) executes scripts in topological order", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -33,7 +33,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
              file.path(temp_dir, "final.csv")))
   })
 
-  result <- capture.output({result_value <- run()}); result <- result_value
+  result <- capture.output({result_value <- run(verbose = FALSE)}); result <- result_value
 
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
@@ -46,7 +46,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   expect_true("final.csv" %in% result)
 })
 
-test_that("run() returns empty vector when no scripts exist", {
+test_that("run(verbose = FALSE) returns empty vector when no scripts exist", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -58,12 +58,12 @@ test_that("run() returns empty vector when no scripts exist", {
     unlink(file.path(temp_dir, "_bakepipe.R"))
   })
 
-  result <- capture.output({result_value <- run()}); result <- result_value
+  result <- capture.output({result_value <- run(verbose = FALSE)}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
 
-test_that("run() handles scripts with no outputs", {
+test_that("run(verbose = FALSE) handles scripts with no outputs", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -75,7 +75,6 @@ test_that("run() handles scripts with no outputs", {
   script_content <- '
 library(bakepipe)
 data <- read.csv(external_in("input.csv"))
-cat("Processing", nrow(data), "rows\n")
 '
   writeLines(script_content, "process.R")
 
@@ -86,12 +85,12 @@ cat("Processing", nrow(data), "rows\n")
              file.path(temp_dir, "process.R")))
   })
 
-  result <- capture.output({result_value <- run()}); result <- result_value
+  result <- capture.output({result_value <- run(verbose = FALSE)}); result <- result_value
   expect_type(result, "character")
   expect_length(result, 0)
 })
 
-test_that("run() stops on script execution error", {
+test_that("run(verbose = FALSE) stops on script execution error", {
   temp_dir <- file.path(tempdir(), "test_script_error")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -114,10 +113,10 @@ stop("Script error for testing")
 
   # Test that an error occurs, but be more flexible about the exact message
   # since callr may wrap the error differently
-  expect_error(capture.output(run()), "Error executing script.*error_script.R")
+  expect_error(capture.output(run(verbose = FALSE)), "Error executing script.*error_script.R")
 })
 
-test_that("run() respects dependency order", {
+test_that("run(verbose = FALSE) respects dependency order", {
   temp_dir <- file.path(tempdir(), "test_dependency_order")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -152,7 +151,7 @@ writeLines(paste("step2:", data), file_out("step2.txt"))
              file.path(temp_dir, ".bakepipe.state")))
   })
 
-  result <- capture.output({result_value <- run()}); result <- result_value
+  result <- capture.output({result_value <- run(verbose = FALSE)}); result <- result_value
 
   expect_true(file.exists("step1.txt"))
   expect_true(file.exists("step2.txt"))
@@ -164,7 +163,7 @@ writeLines(paste("step2:", data), file_out("step2.txt"))
   expect_true("step2.txt" %in% result)
 })
 
-test_that("run() performs incremental execution based on state", {
+test_that("run(verbose = FALSE) performs incremental execution based on state", {
   temp_dir <- file.path(tempdir(), "test_incremental_execution")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -178,7 +177,6 @@ library(bakepipe)
 data <- read.csv(external_in("input.csv"))
 data$processed <- data$value * 2
 write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
-cat("Script 1 executed\n")
 '
   writeLines(script1_content, "01_process.R")
 
@@ -187,7 +185,6 @@ library(bakepipe)
 data <- read.csv(file_in("intermediate.csv"))
 summary_data <- data.frame(total = sum(data$processed))
 write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
-cat("Script 2 executed\n")
 '
   writeLines(script2_content, "02_summarize.R")
 
@@ -203,7 +200,7 @@ cat("Script 2 executed\n")
   })
 
   # First run - should run all scripts and create state file
-  result1 <- capture.output({result1_value <- run()}); result1 <- result1_value
+  result1 <- capture.output({result1_value <- run(verbose = FALSE)}); result1 <- result1_value
   expect_true(file.exists(".bakepipe.state"))
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
@@ -215,7 +212,7 @@ cat("Script 2 executed\n")
   
   Sys.sleep(1) # Ensure time difference would be detectable
   
-  result2 <- capture.output({result2_value <- run()}); result2 <- result2_value
+  result2 <- capture.output({result2_value <- run(verbose = FALSE)}); result2 <- result2_value
   
   # Files should not have been recreated (same modification times)
   expect_equal(file.info("intermediate.csv")$mtime, initial_intermediate_time)
@@ -225,7 +222,7 @@ cat("Script 2 executed\n")
   expect_length(result2, 0)
 })
 
-test_that("run() detects changes and re-runs affected scripts", {
+test_that("run(verbose = FALSE) detects changes and re-runs affected scripts", {
   temp_dir <- file.path(tempdir(), "test_change_detection")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -262,7 +259,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   })
 
   # First run
-  capture.output(run())
+  capture.output(run(verbose = FALSE))
   
   # Modify input file
   Sys.sleep(1) # Ensure detectable time difference
@@ -275,7 +272,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   Sys.sleep(1)
   
   # Second run should detect change and re-run both scripts
-  result <- capture.output({result_value <- run()}); result <- result_value
+  result <- capture.output({result_value <- run(verbose = FALSE)}); result <- result_value
   
   # Both output files should have been recreated
   expect_gt(file.info("intermediate.csv")$mtime, initial_intermediate_time)
@@ -290,7 +287,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   expect_equal(final_data$total, 12) # (1+2+3)*2 = 12
 })
 
-test_that("run() updates state file after execution", {
+test_that("run(verbose = FALSE) updates state file after execution", {
   temp_dir <- file.path(tempdir(), "test_state_update")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -316,7 +313,7 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   })
 
   # Run pipeline
-  capture.output(run())
+  capture.output(run(verbose = FALSE))
   
   # State file should exist and contain all relevant files
   expect_true(file.exists(".bakepipe.state"))
@@ -334,7 +331,7 @@ write.csv(data, file_out("output.csv"), row.names = FALSE)
   expect_true(all(nchar(existing_files$checksum) > 0))
 })
 
-test_that("run() executes scripts in isolated environments", {
+test_that("run(verbose = FALSE) executes scripts in isolated environments", {
   temp_dir <- file.path(tempdir(), "test_isolated_execution")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -379,7 +376,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   })
 
   # This should succeed - scripts run in isolation
-  result <- capture.output({result_value <- run()}); result <- result_value
+  result <- capture.output({result_value <- run(verbose = FALSE)}); result <- result_value
 
   expect_true(file.exists("intermediate.csv"))
   expect_true(file.exists("final.csv"))
@@ -388,7 +385,7 @@ write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
   expect_equal(final_data$total, 6)
 })
 
-test_that("run() scripts cannot pollute global environment", {
+test_that("run(verbose = FALSE) scripts cannot pollute global environment", {
   temp_dir <- file.path(tempdir(), "test_no_global_pollution")
   dir.create(temp_dir, showWarnings = FALSE)
   old_wd <- getwd()
@@ -419,14 +416,14 @@ writeLines(paste("Processed:", content), file_out("output.txt"))
   expect_false(exists("global_pollution_test", envir = globalenv()))
 
   # Run pipeline
-  capture.output(run())
+  capture.output(run(verbose = FALSE))
 
   # The variable should still not exist in global environment
   expect_false(exists("global_pollution_test", envir = globalenv()))
   expect_true(file.exists("output.txt"))
 })
 
-test_that("run() fails when file_in has no corresponding file_out", {
+test_that("run(verbose = FALSE) fails when file_in has no corresponding file_out", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -449,10 +446,10 @@ write.csv(data, file_out("output.csv"))
   })
 
   # Test: validation should fail
-  expect_error(run(), "Pipeline validation failed.*orphaned.csv")
+  expect_error(run(verbose = FALSE), "Pipeline validation failed.*orphaned.csv")
 })
 
-test_that("run() passes when file_in has corresponding file_out", {
+test_that("run(verbose = FALSE) passes when file_in has corresponding file_out", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -491,14 +488,14 @@ write.csv(result, file_out("result.csv"), row.names = FALSE)
   })
 
   # Test: validation should pass and pipeline should run
-  expect_no_error(run())
+  expect_no_error(run(verbose = FALSE))
 
   # Verify files were created
   expect_true(file.exists("processed.csv"))
   expect_true(file.exists("result.csv"))
 })
 
-test_that("run() allows external_in files without corresponding file_out", {
+test_that("run(verbose = FALSE) allows external_in files without corresponding file_out", {
   temp_dir <- tempdir()
   old_wd <- getwd()
   setwd(temp_dir)
@@ -528,7 +525,7 @@ write.csv(processed, file_out("processed.csv"), row.names = FALSE)
   })
 
   # Test: validation should pass because external_in is not subject to the same rules
-  expect_no_error(run())
+  expect_no_error(run(verbose = FALSE))
 
   # Verify file was created
   expect_true(file.exists("processed.csv"))

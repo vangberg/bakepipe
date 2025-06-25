@@ -20,10 +20,4 @@ Finds all R scripts in the project and parses them to detect file_in() and
 file_out() calls. Only string literals are supported as arguments to these
 functions.
 }
-\examples{
-\dontrun{
-# Parse all scripts in the project
-dependencies <- parse()
-}
-}
 \keyword{internal}

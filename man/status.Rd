@@ -4,7 +4,10 @@
 \alias{status}
 \title{Show pipeline status}
 \usage{
-status()
+status(verbose = TRUE)
+}
+\arguments{
+\item{verbose}{Logical. If TRUE (default), prints status information to console.}
 }
 \value{
 NULL (invisibly). This function is called for its side effect of
@@ -14,11 +17,23 @@ displaying pipeline status information to the console.
 Display the current state of all scripts in the pipeline (fresh/stale)
 }
 \examples{
-\dontrun{
+# Copy sample project to temp directory  
+temp_dir <- tempfile()
+dir.create(temp_dir)
+sample_proj <- system.file("extdata", "sample-project", package = "bakepipe")
+file.copy(sample_proj, temp_dir, recursive = TRUE)
+
+# Change to the sample project directory
+old_wd <- getwd()
+setwd(file.path(temp_dir, "sample-project"))
+
 # Display current pipeline status
-bakepipe::status()
+status()
 
 # This will show which scripts are fresh (up-to-date) 
 # and which are stale (need to be re-run)
-}
+
+# Restore working directory and clean up
+setwd(old_wd)
+unlink(temp_dir, recursive = TRUE)
 }

@@ -4,25 +4,40 @@
 #' scripts that are stale (have changed or have stale dependencies) for
 #' incremental execution.
 #'
+#' @param verbose Logical. If TRUE (default), prints progress messages to console.
 #' @return Character vector of files that were created or updated
 #' @examples
-#' \dontrun{
+#' # Copy sample project to temp directory
+#' temp_dir <- tempfile()
+#' dir.create(temp_dir)
+#' sample_proj <- system.file("extdata", "sample-project", package = "bakepipe")
+#' file.copy(sample_proj, temp_dir, recursive = TRUE)
+#'
+#' # Change to the sample project directory
+#' old_wd <- getwd()
+#' setwd(file.path(temp_dir, "sample-project"))
+#'
 #' # Execute the pipeline
-#' created_files <- bakepipe::run()
+#' created_files <- run()
 #'
 #' # The function returns paths of files that were created or updated
 #' print(created_files)
-#' }
+#'
+#' # Restore working directory and clean up
+#' setwd(old_wd)
+#' unlink(temp_dir, recursive = TRUE)
 #' @export
 #' @importFrom callr r
-run <- function() {
+run <- function(verbose = TRUE) {
   # Parse scripts to get dependencies
   pipeline_data <- parse()
 
   # Handle empty pipeline
   if (length(pipeline_data$scripts) == 0) {
-    cat("\n[PIPELINE] \033[1;36mBakepipe Pipeline\033[0m\n")
-    cat("\033[33m   No scripts found in pipeline\033[0m\n\n")
+    if (verbose) {
+      message("\n[PIPELINE] \033[1;36mBakepipe Pipeline\033[0m")
+      message("\033[33m   No scripts found in pipeline\033[0m\n")
+    }
     return(character(0))
   }
 
@@ -47,23 +62,31 @@ run <- function() {
   scripts_to_skip <- all_scripts[!all_scripts %in% stale_scripts]
 
   # Print header
-  cat("\n[PIPELINE] \033[1;36mBakepipe Pipeline\033[0m\n")
-  if (length(scripts_to_run) > 0) {
-    cat(paste0("\033[32m   Running ", length(scripts_to_run), " script",
-               if(length(scripts_to_run) > 1) "s" else "", "\033[0m\n"))
+  if (verbose) {
+    message("\n[PIPELINE] \033[1;36mBakepipe Pipeline\033[0m")
+    if (length(scripts_to_run) > 0) {
+      message(paste0(
+        "\033[32m   Running ", length(scripts_to_run), " script",
+        if (length(scripts_to_run) > 1) "s" else "", "\033[0m"
+      ))
+    }
+    if (length(scripts_to_skip) > 0) {
+      message(paste0(
+        "\033[33m   Skipping ", length(scripts_to_skip), " fresh script",
+        if (length(scripts_to_skip) > 1) "s" else "", "\033[0m"
+      ))
+    }
+    message("")
   }
-  if (length(scripts_to_skip) > 0) {
-    cat(paste0("\033[33m   Skipping ", length(scripts_to_skip), " fresh script",
-               if(length(scripts_to_skip) > 1) "s" else "", "\033[0m\n"))
-  }
-  cat("\n")
 
   # Calculate max script name width for alignment
   max_width <- max(nchar(all_scripts))
 
   # Print messages about scripts being skipped
-  for (script_name in scripts_to_skip) {
-    cat(sprintf("\033[90m[OK] %-*s \033[2m(fresh)\033[0m\n", max_width, script_name))
+  if (verbose) {
+    for (script_name in scripts_to_skip) {
+      message(sprintf("\033[90m[OK] %-*s \033[2m(fresh)\033[0m", max_width, script_name))
+    }
   }
 
   # Track files created during execution
@@ -78,8 +101,10 @@ run <- function() {
     # Check if all input files exist
     for (input_file in script_info$inputs) {
       if (!file.exists(input_file)) {
-        stop("Input file '", input_file, "' required by '", script_name,
-             "' does not exist")
+        stop(
+          "Input file '", input_file, "' required by '", script_name,
+          "' does not exist"
+        )
       }
     }
 
@@ -89,22 +114,25 @@ run <- function() {
     # Execute the script with timing
     start_time <- Sys.time()
 
-    tryCatch({
-      # Run script in isolated R process using callr
-      result <- callr::rscript(
-        script = script_name,
-        show = FALSE,
-        stderr = "2>&1"
-      )
-    }, error = function(e) {
-      # Extract the actual error message from the callr error
-      if (inherits(e, "callr_error") && !is.null(e$stderr)) {
-        # Include full stderr for debugging
-        stop("Error executing script '", script_name, "': ", e$stderr)
+    tryCatch(
+      {
+        # Run script in isolated R process using callr
+        result <- callr::rscript(
+          script = script_name,
+          show = FALSE,
+          stderr = "2>&1"
+        )
+      },
+      error = function(e) {
+        # Extract the actual error message from the callr error
+        if (inherits(e, "callr_error") && !is.null(e$stderr)) {
+          # Include full stderr for debugging
+          stop("Error executing script '", script_name, "': ", e$stderr)
+        }
+        # Fallback to original error message
+        stop("Error executing script '", script_name, "': ", e$message)
       }
-      # Fallback to original error message
-      stop("Error executing script '", script_name, "': ", e$message)
-    })
+    )
 
     end_time <- Sys.time()
     elapsed <- as.numeric(difftime(end_time, start_time, units = "secs"))
@@ -117,48 +145,60 @@ run <- function() {
     } else {
       time_str <- sprintf("%.1fs", elapsed)
     }
-    cat(sprintf("\033[32m[OK] %-*s \033[2m(%s)\033[0m\n",
-                max_width, script_name, time_str))
+    if (verbose) {
+      message(sprintf(
+        "\033[32m[OK] %-*s \033[2m(%s)\033[0m",
+        max_width, script_name, time_str
+      ))
+    }
 
     # Check that expected output files were created
     for (output_file in output_files) {
       if (file.exists(output_file)) {
         created_files <- c(created_files, output_file)
       } else {
-        warning("Script '", script_name, "' was expected to create '",
-                output_file, "' but file does not exist")
+        warning(
+          "Script '", script_name, "' was expected to create '",
+          output_file, "' but file does not exist"
+        )
       }
     }
   }
 
   # Print summary
-  if (length(scripts_to_run) > 0 || length(created_files) > 0) {
-    cat("\n\033[1;36m[SUMMARY]\033[0m\n")
+  if (verbose) {
+    if (length(scripts_to_run) > 0 || length(created_files) > 0) {
+      message("\n\033[1;36m[SUMMARY]\033[0m")
 
-    if (length(scripts_to_run) > 0) {
-      total_time <- sum(script_times)
-      if (total_time < 1) {
-        time_str <- sprintf("%.0fms", total_time * 1000)
-      } else {
-        time_str <- sprintf("%.1fs", total_time)
+      if (length(scripts_to_run) > 0) {
+        total_time <- sum(script_times)
+        if (total_time < 1) {
+          time_str <- sprintf("%.0fms", total_time * 1000)
+        } else {
+          time_str <- sprintf("%.1fs", total_time)
+        }
+        message(sprintf(
+          "\033[32m   Executed %d script%s in %s\033[0m",
+          length(scripts_to_run),
+          if (length(scripts_to_run) > 1) "s" else "",
+          time_str
+        ))
       }
-      cat(sprintf("\033[32m   Executed %d script%s in %s\033[0m\n",
-                  length(scripts_to_run),
-                  if (length(scripts_to_run) > 1) "s" else "",
-                  time_str))
-    }
 
-    if (length(created_files) > 0) {
-      cat(sprintf("\033[36m   Created/updated %d file%s:\033[0m\n",
-                  length(created_files),
-                  if (length(created_files) > 1) "s" else ""))
-      for (file in sort(unique(created_files))) {
-        cat(sprintf("\033[2m     - %s\033[0m\n", file))
+      if (length(created_files) > 0) {
+        message(sprintf(
+          "\033[36m   Created/updated %d file%s:\033[0m",
+          length(created_files),
+          if (length(created_files) > 1) "s" else ""
+        ))
+        for (file in sort(unique(created_files))) {
+          message(sprintf("\033[2m     - %s\033[0m", file))
+        }
       }
+      message("")
+    } else {
+      message("\n\033[32m[OK] All scripts are up to date!\033[0m\n")
     }
-    cat("\n")
-  } else {
-    cat("\n\033[32m[OK] All scripts are up to date!\033[0m\n\n")
   }
 
   # Update state file after execution
