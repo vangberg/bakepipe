@@ -58,10 +58,11 @@ test_that("read_state() computes current checksums and detects stale files", {
   # Parse data to understand file relationships
   parse_data <- list(
     scripts = list(
-      "test.R" = list(inputs = c("input.csv"), outputs = c("output.csv"))
+      "test.R" = list(externals = c("input.csv"), outputs = c("output.csv"))
     ),
-    inputs = c("input.csv"),
-    outputs = c("output.csv")
+    inputs = character(0),
+    outputs = c("output.csv"),
+    externals = c("input.csv")
   )
   
   # Create state file with old checksums (intentionally wrong)
@@ -102,10 +103,11 @@ test_that("script staleness propagates when input file changes (integration test
   
   parse_data <- list(
     scripts = list(
-      "process.R" = list(inputs = c("input.csv"), outputs = c("output.csv"))
+      "process.R" = list(externals = c("input.csv"), outputs = c("output.csv"))
     ),
-    inputs = c("input.csv"),
-    outputs = c("output.csv")
+    inputs = character(0),
+    outputs = c("output.csv"),
+    externals = c("input.csv")
   )
   
   # Create state file with correct checksums initially
@@ -223,10 +225,11 @@ test_that("write_state() handles missing files gracefully", {
   # Parse data with non-existent files
   parse_data <- list(
     scripts = list(
-      "missing_script.R" = list(inputs = c("missing_input.csv"), outputs = c("missing_output.csv"))
+      "missing_script.R" = list(externals = c("missing_input.csv"), outputs = c("missing_output.csv"))
     ),
-    inputs = c("missing_input.csv"),
-    outputs = c("missing_output.csv")
+    inputs = character(0),
+    outputs = c("missing_output.csv"),
+    externals = c("missing_input.csv")
   )
   
   # Should not error, but should handle missing files appropriately
@@ -250,10 +253,11 @@ test_that("state functions work together for round-trip", {
   
   parse_data <- list(
     scripts = list(
-      "process.R" = list(inputs = c("input.csv"), outputs = c("output.csv"))
+      "process.R" = list(externals = c("input.csv"), outputs = c("output.csv"))
     ),
-    inputs = c("input.csv"),
-    outputs = c("output.csv")
+    inputs = character(0),
+    outputs = c("output.csv"),
+    externals = c("input.csv")
   )
   
   # Write state

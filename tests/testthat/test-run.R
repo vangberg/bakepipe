@@ -9,7 +9,7 @@ test_that("run() executes scripts in topological order", {
 
   script1_content <- '
 library(bakepipe)
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 data$processed <- data$value * 2
 write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
 '
@@ -74,7 +74,7 @@ test_that("run() handles scripts with no outputs", {
 
   script_content <- '
 library(bakepipe)
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 cat("Processing", nrow(data), "rows\n")
 '
   writeLines(script_content, "process.R")
@@ -129,7 +129,7 @@ test_that("run() respects dependency order", {
 
   script1_content <- '
 library(bakepipe)
-data <- readLines(file_in("data.csv"))
+data <- readLines(external_in("data.csv"))
 writeLines(paste("step1:", data), file_out("step1.txt"))
 '
   writeLines(script1_content, "01_first.R")
@@ -175,7 +175,7 @@ test_that("run() performs incremental execution based on state", {
 
   script1_content <- '
 library(bakepipe)
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 data$processed <- data$value * 2
 write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
 cat("Script 1 executed\n")
@@ -236,7 +236,7 @@ test_that("run() detects changes and re-runs affected scripts", {
 
   script1_content <- '
 library(bakepipe)
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 data$processed <- data$value * 2
 write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
 '
@@ -301,7 +301,7 @@ test_that("run() updates state file after execution", {
 
   script_content <- '
 library(bakepipe)
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 write.csv(data, file_out("output.csv"), row.names = FALSE)
 '
   writeLines(script_content, "process.R")
@@ -346,7 +346,7 @@ test_that("run() executes scripts in isolated environments", {
   # First script that creates a variable in its environment
   script1_content <- '
 library(bakepipe)
-data <- read.csv(file_in("input.csv"))
+data <- read.csv(external_in("input.csv"))
 secret_variable <- "should_not_be_accessible"
 data$processed <- data$value * 2
 write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
@@ -400,7 +400,7 @@ test_that("run() scripts cannot pollute global environment", {
   # Script that tries to create a global variable
   script_content <- '
 library(bakepipe)
-content <- readLines(file_in("input.txt"))
+content <- readLines(external_in("input.txt"))
 global_pollution_test <- "this_should_not_appear_globally"
 writeLines(paste("Processed:", content), file_out("output.txt"))
 '
@@ -424,4 +424,112 @@ writeLines(paste("Processed:", content), file_out("output.txt"))
   # The variable should still not exist in global environment
   expect_false(exists("global_pollution_test", envir = globalenv()))
   expect_true(file.exists("output.txt"))
+})
+
+test_that("run() fails when file_in has no corresponding file_out", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+
+  # Create a script that uses file_in() for a file that's not produced by any script
+  script_content <- '
+library(bakepipe)
+# This file_in should cause validation to fail since no script produces orphaned.csv
+data <- read.csv(file_in("orphaned.csv"))
+write.csv(data, file_out("output.csv"))
+'
+  writeLines(script_content, "broken.R")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, "broken.R")))
+  })
+
+  # Test: validation should fail
+  expect_error(run(), "Pipeline validation failed.*orphaned.csv")
+})
+
+test_that("run() passes when file_in has corresponding file_out", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+
+  # Create external input file
+  writeLines("x\n1\n2\n3", "external.csv")
+
+  # Create test scripts with proper dependencies
+  script1_content <- '
+library(bakepipe)
+external_data <- read.csv(external_in("external.csv"))
+processed <- data.frame(y = external_data$x * 2)
+write.csv(processed, file_out("processed.csv"), row.names = FALSE)
+'
+  writeLines(script1_content, "01_process.R")
+
+  script2_content <- '
+library(bakepipe)
+processed_data <- read.csv(file_in("processed.csv"))
+result <- data.frame(z = mean(processed_data$y))
+write.csv(result, file_out("result.csv"), row.names = FALSE)
+'
+  writeLines(script2_content, "02_analyze.R")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, "external.csv"),
+             file.path(temp_dir, "01_process.R"),
+             file.path(temp_dir, "02_analyze.R"),
+             file.path(temp_dir, "processed.csv"),
+             file.path(temp_dir, "result.csv"),
+             file.path(temp_dir, ".bakepipe.state")))
+  })
+
+  # Test: validation should pass and pipeline should run
+  expect_no_error(run())
+
+  # Verify files were created
+  expect_true(file.exists("processed.csv"))
+  expect_true(file.exists("result.csv"))
+})
+
+test_that("run() allows external_in files without corresponding file_out", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+
+  writeLines("# Bakepipe root marker", "_bakepipe.R")
+
+  # Create external input file
+  writeLines("a\n1\n2\n3", "user_provided.csv")
+
+  # Create test script that uses external_in for a file not produced by any script
+  script_content <- '
+library(bakepipe)
+# This external_in should NOT cause validation to fail
+user_data <- read.csv(external_in("user_provided.csv"))
+processed <- data.frame(b = user_data$a * 3)
+write.csv(processed, file_out("processed.csv"), row.names = FALSE)
+'
+  writeLines(script_content, "process.R")
+
+  on.exit({
+    setwd(old_wd)
+    unlink(c(file.path(temp_dir, "_bakepipe.R"),
+             file.path(temp_dir, "user_provided.csv"),
+             file.path(temp_dir, "process.R"),
+             file.path(temp_dir, "processed.csv"),
+             file.path(temp_dir, ".bakepipe.state")))
+  })
+
+  # Test: validation should pass because external_in is not subject to the same rules
+  expect_no_error(run())
+
+  # Verify file was created
+  expect_true(file.exists("processed.csv"))
 })

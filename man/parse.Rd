@@ -7,11 +7,12 @@
 parse()
 }
 \value{
-List with three elements:
+List with four elements:
 \itemize{
-\item{scripts: Named list where each element represents a script with 'inputs' and 'outputs'}
+\item{scripts: Named list where each element represents a script with 'inputs', 'outputs', and 'externals'}
 \item{inputs: Character vector of all files used as inputs across all scripts}
 \item{outputs: Character vector of all files produced as outputs across all scripts}
+\item{externals: Character vector of all external files referenced across all scripts}
 }
 }
 \description{
