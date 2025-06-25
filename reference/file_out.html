@@ -63,10 +63,13 @@ used directly when writing files.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Mark a file as output and use it directly when writing</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu">file_out</span><span class="op">(</span><span class="st">"output.csv"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># In a bakepipe script, mark a file as output and use it directly when writing</span></span></span>
+<span class="r-in"><span><span class="co"># write.csv(data, file_out("processed.csv"))</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># The function simply returns the path unchanged</span></span></span>
+<span class="r-in"><span><span class="va">file_path</span> <span class="op">&lt;-</span> <span class="fu">file_out</span><span class="op">(</span><span class="st">"output.csv"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">file_path</span><span class="op">)</span>  <span class="co"># "output.csv"</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "output.csv"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

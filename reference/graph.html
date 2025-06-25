@@ -76,19 +76,6 @@ and 'stale' columns. If provided, will mark nodes as stale/fresh.</p></dd>
 <li><p>edges: Data frame with 'from' and 'to' columns</p></li>
 </ul></div>
 
-    <div class="section level2">
-    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Parse scripts and create dependency graph</span></span></span>
-<span class="r-in"><span><span class="va">parsed</span> <span class="op">&lt;-</span> <span class="fu"><a href="parse.html">parse</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">graph_obj</span> <span class="op">&lt;-</span> <span class="fu">graph</span><span class="op">(</span><span class="va">parsed</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># With state information</span></span></span>
-<span class="r-in"><span><span class="va">state_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_state.html">read_state</a></span><span class="op">(</span><span class="st">".bakepipe.state"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">graph_obj</span> <span class="op">&lt;-</span> <span class="fu">graph</span><span class="op">(</span><span class="va">parsed</span>, <span class="va">state_obj</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
-</code></pre></div>
-    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
