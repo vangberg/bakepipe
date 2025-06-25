@@ -50,8 +50,6 @@ graph <- function(parse_data, state_obj = NULL) {
   # Validate artifact producers (each artifact has exactly one producer)
   validate_artifact_producers(graph_obj, parse_data)
 
-  # Validate external files exist
-  validate_external_files(graph_obj)
 
   # Detect cycles
   detect_cycles(graph_obj)
@@ -136,46 +134,6 @@ validate_artifact_producers <- function(graph_obj, parse_data) {
   TRUE
 }
 
-#' Validate that external files exist
-#'
-#' Ensures that all external files referenced by external_in() calls
-#' actually exist on the filesystem.
-#'
-#' @param graph_obj Graph object from graph() function
-#' @keywords internal
-validate_external_files <- function(graph_obj) {
-  nodes <- graph_obj$nodes
-  
-  # Get external files from graph nodes
-  externals <- nodes$file[nodes$type == "external"]
-
-  if (length(externals) == 0) {
-    return(TRUE)
-  }
-
-  # Check which external files don't exist
-  missing_externals <- character(0)
-  for (external_file in externals) {
-    if (!file.exists(external_file)) {
-      missing_externals <- c(missing_externals, external_file)
-    }
-  }
-
-  if (length(missing_externals) > 0) {
-    cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
-    cat("The following external_in() calls reference files that do not",
-        "exist:\n")
-    cat(paste("\033[33m  -", missing_externals, "\033[0m", collapse = "\n"),
-        "\n\n")
-    cat("Either:\n")
-    cat("1. Create these files, or\n")
-    cat("2. Remove the external_in() calls if they are no longer needed\n")
-    stop("Pipeline validation failed: ",
-         paste(missing_externals, collapse = ", "), call. = FALSE)
-  }
-
-  TRUE
-}
 
 #' Build file nodes from graph structure and parse data
 #'

@@ -75,7 +75,6 @@ test_that("run() handles scripts with no outputs", {
   script_content <- '
 library(bakepipe)
 data <- read.csv(external_in("input.csv"))
-cat("Processing", nrow(data), "rows\n")
 '
   writeLines(script_content, "process.R")
 
@@ -178,7 +177,6 @@ library(bakepipe)
 data <- read.csv(external_in("input.csv"))
 data$processed <- data$value * 2
 write.csv(data, file_out("intermediate.csv"), row.names = FALSE)
-cat("Script 1 executed\n")
 '
   writeLines(script1_content, "01_process.R")
 
@@ -187,7 +185,6 @@ library(bakepipe)
 data <- read.csv(file_in("intermediate.csv"))
 summary_data <- data.frame(total = sum(data$processed))
 write.csv(summary_data, file_out("final.csv"), row.names = FALSE)
-cat("Script 2 executed\n")
 '
   writeLines(script2_content, "02_summarize.R")
 
@@ -449,7 +446,7 @@ write.csv(data, file_out("output.csv"))
   })
 
   # Test: validation should fail
-  expect_error(run(), "Pipeline validation failed.*orphaned.csv")
+  expect_error({invisible(capture.output(run()))}, "Pipeline validation failed.*orphaned.csv")
 })
 
 test_that("run() passes when file_in has corresponding file_out", {
@@ -491,7 +488,7 @@ write.csv(result, file_out("result.csv"), row.names = FALSE)
   })
 
   # Test: validation should pass and pipeline should run
-  expect_no_error(run())
+  expect_no_error({invisible(capture.output(run()))})
 
   # Verify files were created
   expect_true(file.exists("processed.csv"))
@@ -528,7 +525,7 @@ write.csv(processed, file_out("processed.csv"), row.names = FALSE)
   })
 
   # Test: validation should pass because external_in is not subject to the same rules
-  expect_no_error(run())
+  expect_no_error({invisible(capture.output(run()))})
 
   # Verify file was created
   expect_true(file.exists("processed.csv"))

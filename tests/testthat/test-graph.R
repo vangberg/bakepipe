@@ -136,7 +136,7 @@ test_that("graph() validates single producer per artifact", {
     externals = c("input.csv", "other_input.csv")
   )
   
-  expect_error(graph(parse_data), "Pipeline validation failed.*duplicate_output.csv")
+  expect_error({invisible(capture.output(graph(parse_data)))}, "Pipeline validation failed.*duplicate_output.csv")
 })
 
 test_that("graph() supports topological sorting", {
@@ -474,62 +474,4 @@ test_that("graph() handles disconnected components correctly", {
   expect_false(pipeline2_step1_stale)
 })
 
-test_that("graph() validates external files exist", {
-  temp_dir <- tempdir()
-  old_wd <- getwd()
-  setwd(temp_dir)
-  
-  # Create some external files
-  writeLines("data1", "existing.csv")
-  
-  # Parse data with external files - some exist, some don't
-  parse_data <- list(
-    scripts = list(
-      "script1.R" = list(
-        inputs = character(0),
-        outputs = c("output.csv"),
-        externals = c("existing.csv", "missing.csv")
-      )
-    ),
-    inputs = character(0),
-    outputs = c("output.csv"),
-    externals = c("existing.csv", "missing.csv")
-  )
-  
-  # Should error because missing.csv doesn't exist
-  expect_error(graph(parse_data), "Pipeline validation failed.*missing.csv")
-  
-  # Clean up
-  setwd(old_wd)
-  unlink(file.path(temp_dir, "existing.csv"))
-})
 
-test_that("graph() passes when all external files exist", {
-  temp_dir <- tempdir()
-  old_wd <- getwd()
-  setwd(temp_dir)
-  
-  # Create all external files
-  writeLines("data1", "file1.csv")
-  writeLines("data2", "file2.csv")
-  
-  parse_data <- list(
-    scripts = list(
-      "script1.R" = list(
-        inputs = character(0),
-        outputs = c("output.csv"),
-        externals = c("file1.csv", "file2.csv")
-      )
-    ),
-    inputs = character(0),
-    outputs = c("output.csv"),
-    externals = c("file1.csv", "file2.csv")
-  )
-  
-  # Should not error when all external files exist
-  expect_no_error(graph(parse_data))
-  
-  # Clean up
-  setwd(old_wd)
-  unlink(file.path(temp_dir, c("file1.csv", "file2.csv")))
-})
