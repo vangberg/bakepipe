@@ -1,4 +1,4 @@
-test_that("status() displays pipeline table with inputs and outputs", {
+test_that("status(verbose = TRUE) displays pipeline table with inputs and outputs", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -30,9 +30,9 @@ ggsave(file_out("quarterly_report.pdf"), report)
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should display pipeline structure
+  # Test: status(verbose = TRUE) should display pipeline structure
   # Capture output to verify format
-  output <- capture.output(status())
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should contain header and status information
   expect_true(any(grepl("Bakepipe Status", output)))
@@ -49,7 +49,7 @@ ggsave(file_out("quarterly_report.pdf"), report)
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() handles scripts with no dependencies", {
+test_that("status(verbose = TRUE) handles scripts with no dependencies", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -75,8 +75,8 @@ process_data <- function(data) {
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should handle scripts with no dependencies
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should handle scripts with no dependencies
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should show the script with status information
   expect_true(any(grepl("utilities.R", output)))
@@ -88,7 +88,7 @@ process_data <- function(data) {
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() shows appropriate message when no scripts found", {
+test_that("status(verbose = TRUE) shows appropriate message when no scripts found", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -104,8 +104,8 @@ test_that("status() shows appropriate message when no scripts found", {
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should show appropriate message for empty pipeline
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should show appropriate message for empty pipeline
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should indicate no scripts found
   expect_true(any(grepl("No scripts found", output)))
@@ -115,7 +115,7 @@ test_that("status() shows appropriate message when no scripts found", {
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() works with scripts in subdirectories", {
+test_that("status(verbose = TRUE) works with scripts in subdirectories", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -147,8 +147,8 @@ write.csv(result, file_out("results.csv"))
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should show scripts from subdirectories
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should show scripts from subdirectories
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should contain both scripts
   expect_true(any(grepl("main.R", output)))
@@ -161,7 +161,7 @@ write.csv(result, file_out("results.csv"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() handles multiple inputs and outputs per script", {
+test_that("status(verbose = TRUE) handles multiple inputs and outputs per script", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -190,8 +190,8 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should show all inputs and outputs
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should show all inputs and outputs
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should show the script
   expect_true(any(grepl("data_cleaning.R", output)))
@@ -203,7 +203,7 @@ write.table(summary_stats, file_out("summary_stats.txt"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() displays state information for scripts", {
+test_that("status(verbose = TRUE) displays state information for scripts", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -238,8 +238,8 @@ write.csv(analysis, file_out("analysis.csv"))
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should display scripts with state information
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should display scripts with state information
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should contain status header
   expect_true(any(grepl("Bakepipe Status", output)))
@@ -259,7 +259,7 @@ write.csv(analysis, file_out("analysis.csv"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() shows only scripts table (no artifacts table)", {
+test_that("status(verbose = TRUE) shows only scripts table (no artifacts table)", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -282,8 +282,8 @@ write.csv(data, file_out("result.csv"))
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should show only scripts section
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should show only scripts section
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Should have status header
   status_header <- which(grepl("Bakepipe Status", output))
@@ -298,7 +298,7 @@ write.csv(data, file_out("result.csv"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("status() displays scripts in topological order", {
+test_that("status(verbose = TRUE) displays scripts in topological order", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -337,8 +337,8 @@ write.csv(processed, file_out("step1.csv"))
   # Change to project directory
   setwd(project_dir)
   
-  # Test: status() should display scripts in topological order
-  output <- capture.output(status())
+  # Test: status(verbose = TRUE) should display scripts in topological order
+  output <- capture.output(status(verbose = TRUE), type = "message")
   
   # Find line numbers where scripts appear
   c_line <- which(grepl("c_first.R", output))[1]
