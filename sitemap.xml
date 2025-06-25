@@ -13,6 +13,7 @@
 <url><loc>https://vangberg.github.io/bakepipe/reference/compute_file_checksum.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/detect_cycles.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/display_scripts_table.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/external_in.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/extract_file_calls.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/file_in.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/file_out.html</loc></url>
@@ -28,7 +29,8 @@
 <url><loc>https://vangberg.github.io/bakepipe/reference/scripts.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/status.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/topological_sort.html</loc></url>
-<url><loc>https://vangberg.github.io/bakepipe/reference/validate_single_producer.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/validate_artifact_producers.html</loc></url>
+<url><loc>https://vangberg.github.io/bakepipe/reference/validate_external_files.html</loc></url>
 <url><loc>https://vangberg.github.io/bakepipe/reference/write_state.html</loc></url>
 </urlset>
 
