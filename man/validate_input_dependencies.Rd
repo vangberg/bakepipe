@@ -4,10 +4,12 @@
 \alias{validate_input_dependencies}
 \title{Validate that input nodes have corresponding producers}
 \usage{
-validate_input_dependencies(graph_obj)
+validate_input_dependencies(graph_obj, parse_data)
 }
 \arguments{
 \item{graph_obj}{Graph object from graph() function}
+
+\item{parse_data}{Parse result with scripts, inputs, outputs}
 }
 \description{
 Ensures that every input node (files referenced by file_in()) has incoming edges,

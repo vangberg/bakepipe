@@ -9,6 +9,7 @@
 #' @param parse_data List from parse() function with 'scripts', 'inputs', 'outputs'
 #' @param state_obj Optional. Data frame from read_state() function with 'file'
 #'   and 'stale' columns. If provided, will mark nodes as stale/fresh.
+#' @param validate_externals Whether to validate that external files exist (default TRUE)
 #' @return List containing:
 #'   \itemize{
 #'     \item{nodes: Data frame with 'file', 'type', and 'stale' columns}
@@ -20,45 +21,50 @@
 #' # Parse scripts and create dependency graph
 #' parsed <- parse()
 #' graph_obj <- graph(parsed)
-#' 
+#'
 #' # With state information
 #' state_obj <- read_state(".bakepipe.state")
 #' graph_obj <- graph(parsed, state_obj)
 #' }
-graph <- function(parse_data, state_obj = NULL) {
+graph <- function(parse_data, state_obj = NULL, validate_externals = TRUE) {
   if (length(parse_data$scripts) == 0) {
     return(list(
-      nodes = data.frame(file = character(0), type = character(0), 
+      nodes = data.frame(file = character(0), type = character(0),
                         stale = logical(0), stringsAsFactors = FALSE),
-      edges = data.frame(from = character(0), to = character(0), 
+      edges = data.frame(from = character(0), to = character(0),
                         stringsAsFactors = FALSE)
     ))
   }
-  
+
   # Build edges first
   edges <- build_file_edges(parse_data$scripts)
-  
+
   # Collect all files as nodes and determine types from graph structure
   nodes <- build_file_nodes(parse_data, edges, state_obj)
-  
+
   # Create graph object
   graph_obj <- list(
     nodes = nodes,
     edges = edges
   )
-  
+
   # Validate single producer per artifact
   validate_single_producer(graph_obj)
-  
+
   # Validate input dependencies
-  validate_input_dependencies(graph_obj)
-  
+  validate_input_dependencies(graph_obj, parse_data)
+
+  # Validate external files exist
+  if (validate_externals) {
+    validate_external_files(graph_obj, parse_data)
+  }
+
   # Detect cycles
   detect_cycles(graph_obj)
-  
+
   # Propagate staleness to descendants
   graph_obj <- propagate_staleness(graph_obj)
-  
+
   return(graph_obj)
 }
 
@@ -70,8 +76,8 @@ validate_single_producer <- function(graph_obj) {
   nodes <- graph_obj$nodes
   edges <- graph_obj$edges
 
-  # Find output nodes
-  output_nodes <- nodes$file[nodes$type == "output"]
+  # Find output nodes (artifacts that are outputs)
+  output_nodes <- nodes$file[nodes$type == "artifact"]
 
   # For each output node, check if it has multiple script producers
   for (output_file in output_nodes) {
@@ -93,13 +99,16 @@ validate_single_producer <- function(graph_obj) {
 #' marked with external_in() are not included in input nodes.
 #'
 #' @param graph_obj Graph object from graph() function
+#' @param parse_data Parse result with scripts, inputs, outputs
 #' @keywords internal
-validate_input_dependencies <- function(graph_obj) {
+validate_input_dependencies <- function(graph_obj, parse_data) {
   nodes <- graph_obj$nodes
   edges <- graph_obj$edges
 
-  # Find input nodes (type="input")
-  input_nodes <- nodes$file[nodes$type == "input"]
+  # Get inputs from parse_data
+  inputs <- setdiff(parse_data$inputs, parse_data$outputs)
+  # Find input nodes (type="artifact" that are inputs)
+  input_nodes <- nodes$file[nodes$type == "artifact" & nodes$file %in% inputs]
 
   if (length(input_nodes) == 0) {
     return(TRUE)
@@ -116,11 +125,56 @@ validate_input_dependencies <- function(graph_obj) {
   }
 
   if (length(orphaned_inputs) > 0) {
-    stop("Pipeline validation failed: The following file_in() calls reference files that are not produced by any file_out() call:\n",
-         paste("  -", orphaned_inputs, collapse = "\n"),
-         "\n\nEither:\n",
-         "1. Add a script that produces these files with file_out(), or\n",
-         "2. Change file_in() to external_in() if these are external files provided by the user")
+    cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
+    cat("The following file_in() calls reference files that are not produced",
+        "by any file_out() call:\n")
+    cat(paste("\033[33m  -", orphaned_inputs, "\033[0m", collapse = "\n"),
+        "\n\n")
+    cat("Either:\n")
+    cat("1. Add a script that produces these files with file_out(), or\n")
+    cat("2. Change file_in() to external_in() if these are external files",
+        "provided by the user\n")
+    stop("Pipeline validation failed: ",
+         paste(orphaned_inputs, collapse = ", "), call. = FALSE)
+  }
+
+  TRUE
+}
+
+#' Validate that external files exist
+#'
+#' Ensures that all external files referenced by external_in() calls
+#' actually exist on the filesystem.
+#'
+#' @param graph_obj Graph object from graph() function
+#' @param parse_data Parse result with scripts, inputs, outputs, externals
+#' @keywords internal
+validate_external_files <- function(graph_obj, parse_data) {
+  externals <- parse_data$externals
+
+  if (length(externals) == 0) {
+    return(TRUE)
+  }
+
+  # Check which external files don't exist
+  missing_externals <- character(0)
+  for (external_file in externals) {
+    if (!file.exists(external_file)) {
+      missing_externals <- c(missing_externals, external_file)
+    }
+  }
+
+  if (length(missing_externals) > 0) {
+    cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
+    cat("The following external_in() calls reference files that do not",
+        "exist:\n")
+    cat(paste("\033[33m  -", missing_externals, "\033[0m", collapse = "\n"),
+        "\n\n")
+    cat("Either:\n")
+    cat("1. Create these files, or\n")
+    cat("2. Remove the external_in() calls if they are no longer needed\n")
+    stop("Pipeline validation failed: ",
+         paste(missing_externals, collapse = ", "), call. = FALSE)
   }
 
   TRUE
@@ -141,13 +195,12 @@ validate_input_dependencies <- function(graph_obj) {
 build_file_nodes <- function(parse_data, edges, state_obj = NULL) {
   # Get all unique files mentioned in the graph
   all_files <- unique(c(edges$from, edges$to, names(parse_data$scripts)))
-  
+
   # Determine file types
   scripts <- names(parse_data$scripts)
-  inputs <- setdiff(parse_data$inputs, parse_data$outputs)
-  outputs <- parse_data$outputs
+  artifacts <- unique(c(parse_data$inputs, parse_data$outputs))
   externals <- parse_data$externals
-  
+
   # Create types vector
   file_types <- character(length(all_files))
   for (i in seq_along(all_files)) {
@@ -156,15 +209,13 @@ build_file_nodes <- function(parse_data, edges, state_obj = NULL) {
       file_types[i] <- "script"
     } else if (file %in% externals) {
       file_types[i] <- "external"
-    } else if (file %in% inputs) {
-      file_types[i] <- "input"
-    } else if (file %in% outputs) {
-      file_types[i] <- "output"
+    } else if (file %in% artifacts) {
+      file_types[i] <- "artifact"
     } else {
       file_types[i] <- "unknown"
     }
   }
-  
+
   # Create nodes data frame - all default to stale = TRUE
   nodes <- data.frame(
     file = all_files,
@@ -172,7 +223,7 @@ build_file_nodes <- function(parse_data, edges, state_obj = NULL) {
     stale = rep(TRUE, length(all_files)),
     stringsAsFactors = FALSE
   )
-  
+
   # Update staleness based on state_obj
   if (!is.null(state_obj)) {
     for (i in seq_len(nrow(nodes))) {
@@ -182,7 +233,7 @@ build_file_nodes <- function(parse_data, edges, state_obj = NULL) {
       }
     }
   }
-  
+
   nodes
 }
 
@@ -201,7 +252,7 @@ build_file_edges <- function(scripts_data) {
 
   for (script_name in names(scripts_data)) {
     script_data <- scripts_data[[script_name]]
-    
+
     # Create edges from input files to script
     for (input_file in script_data$inputs) {
       edges <- rbind(edges, data.frame(
@@ -210,7 +261,7 @@ build_file_edges <- function(scripts_data) {
         stringsAsFactors = FALSE
       ))
     }
-    
+
     # Create edges from external files to script
     for (external_file in script_data$externals) {
       edges <- rbind(edges, data.frame(
@@ -219,7 +270,7 @@ build_file_edges <- function(scripts_data) {
         stringsAsFactors = FALSE
       ))
     }
-    
+
     # Create edges from script to output files
     for (output_file in script_data$outputs) {
       edges <- rbind(edges, data.frame(
@@ -448,7 +499,7 @@ propagate_staleness <- function(graph_obj) {
     node_type <- nodes$type[i]
 
     if (node_is_stale) {
-      if (node_type == "output") {
+      if (node_type == "artifact") {
         # If node is stale AND output: mark parent + descendants as stale
         parents <- get_parents(node_name)
         for (parent in parents) {

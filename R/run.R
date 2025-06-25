@@ -9,7 +9,7 @@
 #' \dontrun{
 #' # Execute the pipeline
 #' created_files <- bakepipe::run()
-#' 
+#'
 #' # The function returns paths of files that were created or updated
 #' print(created_files)
 #' }
@@ -88,30 +88,11 @@ run <- function() {
 
     # Execute the script with timing
     start_time <- Sys.time()
-    
+
     tryCatch({
       # Run script in isolated R process using callr
-      result <- callr::r(
-        func = function(script_path, working_dir) {
-          # Set working directory to match the calling process
-          setwd(working_dir)
-          
-          # Try to load bakepipe package
-          if (!requireNamespace("bakepipe", quietly = TRUE)) {
-            # If package not installed, try to load from source in development
-            if (file.exists("DESCRIPTION") && 
-                file.exists(file.path("R", "external_in.R"))) {
-              # Load from source files
-              source(file.path("R", "external_in.R"))
-              source(file.path("R", "file_in.R"))
-              source(file.path("R", "file_out.R"))
-            }
-          } else {
-            library(bakepipe, quietly = TRUE)
-          }
-          source(script_path, local = TRUE)
-        },
-        args = list(script_name, getwd()),
+      result <- callr::rscript(
+        script = script_name,
         show = FALSE,
         stderr = "2>&1"
       )
@@ -124,19 +105,20 @@ run <- function() {
       # Fallback to original error message
       stop("Error executing script '", script_name, "': ", e$message)
     })
-    
+
     end_time <- Sys.time()
     elapsed <- as.numeric(difftime(end_time, start_time, units = "secs"))
     script_times <- c(script_times, elapsed)
     names(script_times)[length(script_times)] <- script_name
-    
+
     # Show completion with timing
     if (elapsed < 1) {
       time_str <- sprintf("%.0fms", elapsed * 1000)
     } else {
       time_str <- sprintf("%.1fs", elapsed)
     }
-    cat(sprintf("\033[32m[OK] %-*s \033[2m(%s)\033[0m\n", max_width, script_name, time_str))
+    cat(sprintf("\033[32m[OK] %-*s \033[2m(%s)\033[0m\n",
+                max_width, script_name, time_str))
 
     # Check that expected output files were created
     for (output_file in output_files) {
@@ -152,7 +134,7 @@ run <- function() {
   # Print summary
   if (length(scripts_to_run) > 0 || length(created_files) > 0) {
     cat("\n\033[1;36m[SUMMARY]\033[0m\n")
-    
+
     if (length(scripts_to_run) > 0) {
       total_time <- sum(script_times)
       if (total_time < 1) {
@@ -160,16 +142,16 @@ run <- function() {
       } else {
         time_str <- sprintf("%.1fs", total_time)
       }
-      cat(sprintf("\033[32m   Executed %d script%s in %s\033[0m\n", 
+      cat(sprintf("\033[32m   Executed %d script%s in %s\033[0m\n",
                   length(scripts_to_run),
-                  if(length(scripts_to_run) > 1) "s" else "",
+                  if (length(scripts_to_run) > 1) "s" else "",
                   time_str))
     }
-    
+
     if (length(created_files) > 0) {
-      cat(sprintf("\033[36m   Created/updated %d file%s:\033[0m\n", 
+      cat(sprintf("\033[36m   Created/updated %d file%s:\033[0m\n",
                   length(created_files),
-                  if(length(created_files) > 1) "s" else ""))
+                  if (length(created_files) > 1) "s" else ""))
       for (file in sort(unique(created_files))) {
         cat(sprintf("\033[2m     - %s\033[0m\n", file))
       }
