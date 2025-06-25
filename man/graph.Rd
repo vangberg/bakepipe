@@ -28,14 +28,3 @@ Node types are determined from parse data:
 \item Scripts: script file names
 }
 }
-\examples{
-\dontrun{
-# Parse scripts and create dependency graph
-parsed <- parse()
-graph_obj <- graph(parsed)
-
-# With state information
-state_obj <- read_state(".bakepipe.state")
-graph_obj <- graph(parsed, state_obj)
-}
-}

@@ -13,11 +13,6 @@
 #'   }
 #' @keywords internal
 #' @importFrom fs path_rel
-#' @examples
-#' \dontrun{
-#' # Parse all scripts in the project
-#' dependencies <- parse()
-#' }
 parse <- function() {
   # Get all R scripts in the project
   script_paths <- scripts()

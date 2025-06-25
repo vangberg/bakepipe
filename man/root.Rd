@@ -13,9 +13,3 @@ Character string with the absolute path to the project root
 Find the project root by locating the nearest _bakepipe.R file,
 searching upward from the current working directory.
 }
-\examples{
-\dontrun{
-# Get the project root directory
-project_root <- root()
-}
-}

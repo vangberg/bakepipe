@@ -21,10 +21,3 @@ Returns all files that depend on the given file by following
 the directed edges. Useful for marking files as stale when an upstream
 dependency changes.
 }
-\examples{
-\dontrun{
-parsed <- parse()
-graph_obj <- graph(parsed)
-stale_files <- find_descendants(graph_obj, "input.csv")
-}
-}

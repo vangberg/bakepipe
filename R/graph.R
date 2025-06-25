@@ -15,16 +15,6 @@
 #'     \item{edges: Data frame with 'from' and 'to' columns}
 #'   }
 #' @importFrom stats setNames
-#' @examples
-#' \dontrun{
-#' # Parse scripts and create dependency graph
-#' parsed <- parse()
-#' graph_obj <- graph(parsed)
-#'
-#' # With state information
-#' state_obj <- read_state(".bakepipe.state")
-#' graph_obj <- graph(parsed, state_obj)
-#' }
 graph <- function(parse_data, state_obj = NULL) {
   if (length(parse_data$scripts) == 0) {
     return(list(
@@ -296,12 +286,6 @@ detect_cycles <- function(graph_obj) {
 #' @param graph_obj Graph object from graph() function
 #' @param scripts_only Logical. If TRUE, returns only script nodes in order
 #' @return Character vector of file names in topological order
-#' @examples
-#' \dontrun{
-#' parsed <- parse()
-#' graph_obj <- graph(parsed)
-#' execution_order <- topological_sort(graph_obj, scripts_only = TRUE)
-#' }
 topological_sort <- function(graph_obj, scripts_only = FALSE) {
   nodes <- graph_obj$nodes$file
   edges <- graph_obj$edges
@@ -365,12 +349,6 @@ topological_sort <- function(graph_obj, scripts_only = FALSE) {
 #' @param node Starting file to find descendants from
 #' @param scripts_only Logical. If TRUE, returns only script descendants
 #' @return Character vector of all descendant file names
-#' @examples
-#' \dontrun{
-#' parsed <- parse()
-#' graph_obj <- graph(parsed)
-#' stale_files <- find_descendants(graph_obj, "input.csv")
-#' }
 find_descendants <- function(graph_obj, node, scripts_only = FALSE) {
   nodes <- graph_obj$nodes$file
   edges <- graph_obj$edges

@@ -13,9 +13,3 @@ Character vector of absolute paths to .R files
 Returns a vector with paths to all .R scripts in or below the project root.
 The project root is determined by bakepipe::root().
 }
-\examples{
-\dontrun{
-# Get all R scripts in the project
-all_scripts <- scripts()
-}
-}
