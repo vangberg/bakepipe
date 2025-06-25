@@ -18,8 +18,10 @@ and is used for static analysis to determine script dependencies. It can be
 used directly when reading files.
 }
 \examples{
-\dontrun{
-# Mark a file as input and use it directly when reading
-data <- read.csv(file_in("data.csv"))
-}
+# In a bakepipe script, mark a file as input and use it directly when reading
+# data <- read.csv(file_in("processed.csv"))
+
+# The function simply returns the path unchanged
+file_path <- file_in("data.csv")
+print(file_path)  # "data.csv"
 }
