@@ -1,4 +1,13 @@
 test_that("graph() creates correct DAG structure from parse output", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+  
+  # Create external files for validation
+  writeLines("sales data", "sales.csv")
+  writeLines("regions data", "regions.csv")
+  writeLines("raw data", "raw_data.txt")
+  
   # Test data structure with new parse format
   parse_data <- list(
     scripts = list(
@@ -23,7 +32,7 @@ test_that("graph() creates correct DAG structure from parse output", {
     externals = c("sales.csv", "regions.csv", "raw_data.txt")
   )
   
-  graph <- graph(parse_data, validate_externals = FALSE)
+  graph <- graph(parse_data)
   
   # Should return a list with nodes and edges
   expect_type(graph, "list")
@@ -73,6 +82,10 @@ test_that("graph() creates correct DAG structure from parse output", {
   expect_true(any(edges$from == "monthly_sales.csv" & edges$to == "report_generation.R"))
   expect_true(any(edges$from == "regions.csv" & edges$to == "report_generation.R"))
   expect_true(any(edges$from == "report_generation.R" & edges$to == "quarterly_report.pdf"))
+  
+  # Clean up
+  setwd(old_wd)
+  unlink(file.path(temp_dir, c("sales.csv", "regions.csv", "raw_data.txt")))
 })
 
 test_that("graph() detects cyclic dependencies", {
@@ -100,7 +113,7 @@ test_that("graph() detects cyclic dependencies", {
     externals = character(0)
   )
   
-  expect_error(graph(parse_data, validate_externals = FALSE), "Cycle detected")
+  expect_error(graph(parse_data), "Cycle detected")
 })
 
 test_that("graph() validates single producer per artifact", {
@@ -123,10 +136,18 @@ test_that("graph() validates single producer per artifact", {
     externals = c("input.csv", "other_input.csv")
   )
   
-  expect_error(graph(parse_data, validate_externals = FALSE), "multiple producers")
+  expect_error(graph(parse_data), "Pipeline validation failed.*duplicate_output.csv")
 })
 
 test_that("graph() supports topological sorting", {
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+  setwd(temp_dir)
+  
+  # Create external files
+  writeLines("sales", "sales.csv")
+  writeLines("regions", "regions.csv")
+  
   parse_data <- list(
     scripts = list(
       "analysis.R" = list(
@@ -145,7 +166,7 @@ test_that("graph() supports topological sorting", {
     externals = c("sales.csv", "regions.csv")
   )
   
-  graph_obj <- graph(parse_data, validate_externals = FALSE)
+  graph_obj <- graph(parse_data)
   topo_order <- topological_sort(graph_obj, scripts_only = TRUE)
   
   expect_type(topo_order, "character")
@@ -158,6 +179,10 @@ test_that("graph() supports topological sorting", {
   # Only scripts should be in the topological order
   expect_equal(length(topo_order), 2)
   expect_true(all(grepl("\\.R$", topo_order)))
+  
+  # Clean up
+  setwd(old_wd)
+  unlink(file.path(temp_dir, c("sales.csv", "regions.csv")))
 })
 
 test_that("graph() finds descendants for stale marking", {
@@ -179,7 +204,7 @@ test_that("graph() finds descendants for stale marking", {
     externals = c("sales.csv", "regions.csv")
   )
   
-  graph_obj <- graph(parse_data, validate_externals = FALSE)
+  graph_obj <- graph(parse_data)
   
   # Find descendants of analysis.R (should include files and scripts)
   descendants <- find_descendants(graph_obj, "analysis.R")
@@ -201,7 +226,7 @@ test_that("graph() handles empty parse data", {
     outputs = character(0)
   )
   
-  graph_obj <- graph(parse_data, validate_externals = FALSE)
+  graph_obj <- graph(parse_data)
   
   expect_type(graph_obj, "list")
   expect_equal(nrow(graph_obj$nodes), 0)
@@ -224,7 +249,7 @@ test_that("graph() handles scripts with no dependencies", {
     outputs = c("data.csv")
   )
   
-  graph_obj <- graph(parse_data, validate_externals = FALSE)
+  graph_obj <- graph(parse_data)
   
   expect_true("standalone.R" %in% graph_obj$nodes$file)
   expect_true("producer.R" %in% graph_obj$nodes$file)
@@ -265,7 +290,7 @@ test_that("topological_sort() returns scripts in dependency order", {
     externals = c("raw.csv")
   )
   
-  graph_obj <- graph(parse_data, validate_externals = FALSE)
+  graph_obj <- graph(parse_data)
   topo_order <- topological_sort(graph_obj, scripts_only = TRUE)
   
   # All nodes should be scripts
@@ -294,7 +319,7 @@ test_that("graph() with state_obj marks nodes as stale correctly", {
     stringsAsFactors = FALSE
   )
   
-  graph_obj <- graph(parse_data, state_obj, validate_externals = FALSE)
+  graph_obj <- graph(parse_data, state_obj)
   
   # Check that nodes data frame has stale information
   expect_true("nodes" %in% names(graph_obj))
@@ -325,7 +350,7 @@ test_that("graph() without state_obj works as before", {
   )
   
   # Should work without state_obj parameter - all nodes should be stale
-  graph_obj <- graph(parse_data, validate_externals = FALSE)
+  graph_obj <- graph(parse_data)
   
   expect_true("nodes" %in% names(graph_obj))
   expect_true("edges" %in% names(graph_obj))
@@ -353,7 +378,7 @@ test_that("graph() marks all nodes as fresh when no stale files", {
     stringsAsFactors = FALSE
   )
   
-  graph_obj <- graph(parse_data, state_obj, validate_externals = FALSE)
+  graph_obj <- graph(parse_data, state_obj)
   
   # All scripts should be fresh when no stale files
   expect_true(all(!graph_obj$nodes$stale))
@@ -377,7 +402,7 @@ test_that("graph() marks nodes as stale when files not in state", {
     stringsAsFactors = FALSE
   )
   
-  graph_obj <- graph(parse_data, state_obj, validate_externals = FALSE)
+  graph_obj <- graph(parse_data, state_obj)
   
   # script1.R should be stale due to input.csv being stale, script2.R should be stale
   script1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script1.R"]
@@ -406,7 +431,7 @@ test_that("graph() propagates staleness correctly via DFS", {
     stringsAsFactors = FALSE
   )
   
-  graph_obj <- graph(parse_data, state_obj, validate_externals = FALSE)
+  graph_obj <- graph(parse_data, state_obj)
   
   # All scripts should be stale due to propagation
   script1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "script1.R"]
@@ -438,7 +463,7 @@ test_that("graph() handles disconnected components correctly", {
     stringsAsFactors = FALSE
   )
   
-  graph_obj <- graph(parse_data, state_obj, validate_externals = FALSE)
+  graph_obj <- graph(parse_data, state_obj)
   
   # Only pipeline1 scripts should be stale
   pipeline1_step1_stale <- graph_obj$nodes$stale[graph_obj$nodes$file == "pipeline1_step1.R"]

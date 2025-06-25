@@ -40,7 +40,7 @@ display_scripts_table <- function(pipeline_data) {
   state_obj <- read_state(file.path(root(), ".bakepipe.state"))
 
   # Create graph with state information
-  graph_obj <- graph(pipeline_data, state_obj, validate_externals = FALSE)
+  graph_obj <- graph(pipeline_data, state_obj)
   topo_order <- topological_sort(graph_obj, scripts_only = TRUE)
 
   # Scripts are already in the correct order

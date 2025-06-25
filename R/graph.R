@@ -9,7 +9,6 @@
 #' @param parse_data List from parse() function with 'scripts', 'inputs', 'outputs'
 #' @param state_obj Optional. Data frame from read_state() function with 'file'
 #'   and 'stale' columns. If provided, will mark nodes as stale/fresh.
-#' @param validate_externals Whether to validate that external files exist (default TRUE)
 #' @return List containing:
 #'   \itemize{
 #'     \item{nodes: Data frame with 'file', 'type', and 'stale' columns}
@@ -26,7 +25,7 @@
 #' state_obj <- read_state(".bakepipe.state")
 #' graph_obj <- graph(parsed, state_obj)
 #' }
-graph <- function(parse_data, state_obj = NULL, validate_externals = TRUE) {
+graph <- function(parse_data, state_obj = NULL) {
   if (length(parse_data$scripts) == 0) {
     return(list(
       nodes = data.frame(file = character(0), type = character(0),
@@ -48,16 +47,11 @@ graph <- function(parse_data, state_obj = NULL, validate_externals = TRUE) {
     edges = edges
   )
 
-  # Validate single producer per artifact
-  validate_single_producer(graph_obj)
-
-  # Validate input dependencies
-  validate_input_dependencies(graph_obj, parse_data)
+  # Validate artifact producers (each artifact has exactly one producer)
+  validate_artifact_producers(graph_obj, parse_data)
 
   # Validate external files exist
-  if (validate_externals) {
-    validate_external_files(graph_obj, parse_data)
-  }
+  validate_external_files(graph_obj)
 
   # Detect cycles
   detect_cycles(graph_obj)
@@ -68,62 +62,48 @@ graph <- function(parse_data, state_obj = NULL, validate_externals = TRUE) {
   return(graph_obj)
 }
 
-#' Validate that each output file has at most one producer script
+#' Validate that each artifact has exactly one producer
 #'
-#' @param graph_obj Graph object from graph() function
-#' @keywords internal
-validate_single_producer <- function(graph_obj) {
-  nodes <- graph_obj$nodes
-  edges <- graph_obj$edges
-
-  # Find output nodes (artifacts that are outputs)
-  output_nodes <- nodes$file[nodes$type == "artifact"]
-
-  # For each output node, check if it has multiple script producers
-  for (output_file in output_nodes) {
-    # Find all script nodes that produce this output
-    script_producers <- edges$from[edges$to == output_file &
-                                  edges$from %in% nodes$file[nodes$type == "script"]]
-
-    if (length(script_producers) > 1) {
-      stop("Artifact '", output_file, "' has multiple producers: '",
-           paste(script_producers, collapse = "', '"), "'")
-    }
-  }
-}
-
-#' Validate that input nodes have corresponding producers
-#'
-#' Ensures that every input node (files referenced by file_in()) has incoming edges,
-#' meaning they are produced by some script in the pipeline. External files
-#' marked with external_in() are not included in input nodes.
+#' Ensures that every artifact (file referenced by file_in()) has exactly one producer.
+#' This means each artifact should have exactly one script that produces it - not zero
+#' (orphaned) and not more than one (multiple producers).
 #'
 #' @param graph_obj Graph object from graph() function
 #' @param parse_data Parse result with scripts, inputs, outputs
 #' @keywords internal
-validate_input_dependencies <- function(graph_obj, parse_data) {
+validate_artifact_producers <- function(graph_obj, parse_data) {
   nodes <- graph_obj$nodes
   edges <- graph_obj$edges
 
-  # Get inputs from parse_data
+  # Get inputs from parse_data (these need producers)
   inputs <- setdiff(parse_data$inputs, parse_data$outputs)
-  # Find input nodes (type="artifact" that are inputs)
+  # Find input nodes that need producers
   input_nodes <- nodes$file[nodes$type == "artifact" & nodes$file %in% inputs]
+  
+  # Find all artifact nodes for multiple producer check
+  artifact_nodes <- nodes$file[nodes$type == "artifact"]
 
-  if (length(input_nodes) == 0) {
-    return(TRUE)
-  }
-
-  # For each input node, check if it has incoming edges
+  # Check for orphaned inputs (zero producers)
   orphaned_inputs <- character(0)
   for (input_file in input_nodes) {
-    # Check if this input has any incoming edges
-    has_incoming <- any(edges$to == input_file)
-    if (!has_incoming) {
+    script_producers <- edges$from[edges$to == input_file &
+                                  edges$from %in% nodes$file[nodes$type == "script"]]
+    if (length(script_producers) == 0) {
       orphaned_inputs <- c(orphaned_inputs, input_file)
     }
   }
 
+  # Check for multiple producers
+  multiple_producer_artifacts <- character(0)
+  for (artifact_file in artifact_nodes) {
+    script_producers <- edges$from[edges$to == artifact_file &
+                                  edges$from %in% nodes$file[nodes$type == "script"]]
+    if (length(script_producers) > 1) {
+      multiple_producer_artifacts <- c(multiple_producer_artifacts, artifact_file)
+    }
+  }
+
+  # Report orphaned inputs
   if (length(orphaned_inputs) > 0) {
     cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
     cat("The following file_in() calls reference files that are not produced",
@@ -138,6 +118,21 @@ validate_input_dependencies <- function(graph_obj, parse_data) {
          paste(orphaned_inputs, collapse = ", "), call. = FALSE)
   }
 
+  # Report multiple producers
+  if (length(multiple_producer_artifacts) > 0) {
+    cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
+    cat("The following artifacts have multiple producers:\n")
+    for (artifact in multiple_producer_artifacts) {
+      producers <- edges$from[edges$to == artifact &
+                             edges$from %in% nodes$file[nodes$type == "script"]]
+      cat(sprintf("\033[33m  - %s\033[0m produced by: %s\n", 
+                  artifact, paste(producers, collapse = ", ")))
+    }
+    cat("\nEach artifact should have exactly one producer script.\n")
+    stop("Pipeline validation failed: ",
+         paste(multiple_producer_artifacts, collapse = ", "), call. = FALSE)
+  }
+
   TRUE
 }
 
@@ -147,10 +142,12 @@ validate_input_dependencies <- function(graph_obj, parse_data) {
 #' actually exist on the filesystem.
 #'
 #' @param graph_obj Graph object from graph() function
-#' @param parse_data Parse result with scripts, inputs, outputs, externals
 #' @keywords internal
-validate_external_files <- function(graph_obj, parse_data) {
-  externals <- parse_data$externals
+validate_external_files <- function(graph_obj) {
+  nodes <- graph_obj$nodes
+  
+  # Get external files from graph nodes
+  externals <- nodes$file[nodes$type == "external"]
 
   if (length(externals) == 0) {
     return(TRUE)

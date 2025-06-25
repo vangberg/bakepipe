@@ -4,12 +4,10 @@
 \alias{validate_external_files}
 \title{Validate that external files exist}
 \usage{
-validate_external_files(graph_obj, parse_data)
+validate_external_files(graph_obj)
 }
 \arguments{
 \item{graph_obj}{Graph object from graph() function}
-
-\item{parse_data}{Parse result with scripts, inputs, outputs, externals}
 }
 \description{
 Ensures that all external files referenced by external_in() calls

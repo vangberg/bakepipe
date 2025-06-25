@@ -4,15 +4,13 @@
 \alias{graph}
 \title{Create dependency graph from parsed script data}
 \usage{
-graph(parse_data, state_obj = NULL, validate_externals = TRUE)
+graph(parse_data, state_obj = NULL)
 }
 \arguments{
 \item{parse_data}{List from parse() function with 'scripts', 'inputs', 'outputs'}
 
 \item{state_obj}{Optional. Data frame from read_state() function with 'file'
 and 'stale' columns. If provided, will mark nodes as stale/fresh.}
-
-\item{validate_externals}{Whether to validate that external files exist (default TRUE)}
 }
 \value{
 List containing:
