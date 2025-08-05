@@ -21,12 +21,7 @@ dependencies and external data sources.
 }
 \examples{
 # In a bakepipe script, mark a file as external input and use it directly
-\donttest{
-user_data <- read.csv(external_in("input.csv"))
-config <- readRDS(external_in("config.rds"))
-}
-
-# The function simply returns the path unchanged
-file_path <- external_in("input.csv")
-print(file_path)  # "input.csv"
+csv_file <- system.file("extdata", "sample-project", "input.csv",
+                        package = "bakepipe")
+user_data <- read.csv(external_in(csv_file))
 }
