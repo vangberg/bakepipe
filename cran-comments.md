@@ -2,7 +2,7 @@
 
 This is a resubmission. In this version I have:
 
-- Uncommented examples that were previously commented out, and wrapped them in \donttest{}
+- Uncommented examples that were previously commented out
 - Removed `message()` calls from `graph.R`
 
 ## R CMD check results
