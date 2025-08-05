@@ -9,7 +9,9 @@
 #' @export
 #' @examples
 #' # In a bakepipe script, mark a file as input and use it directly when reading
-#' # data <- read.csv(file_in("processed.csv"))
+#' \donttest{
+#' data <- read.csv(file_in("processed.csv"))
+#' }
 #' 
 #' # The function simply returns the path unchanged
 #' file_path <- file_in("data.csv")

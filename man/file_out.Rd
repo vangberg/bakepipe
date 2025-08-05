@@ -19,7 +19,9 @@ used directly when writing files.
 }
 \examples{
 # In a bakepipe script, mark a file as output and use it directly when writing
-# write.csv(data, file_out("processed.csv"))
+\donttest{
+write.csv(data, file_out("processed.csv"))
+}
 
 # The function simply returns the path unchanged
 file_path <- file_out("output.csv")

@@ -11,8 +11,10 @@
 #' @export
 #' @examples
 #' # In a bakepipe script, mark a file as external input and use it directly
-#' # user_data <- read.csv(external_in("input.csv"))
-#' # config <- readRDS(external_in("config.rds"))
+#' \donttest{
+#' user_data <- read.csv(external_in("input.csv"))
+#' config <- readRDS(external_in("config.rds"))
+#' }
 #' 
 #' # The function simply returns the path unchanged
 #' file_path <- external_in("input.csv")

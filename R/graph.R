@@ -93,30 +93,30 @@ validate_artifact_producers <- function(graph_obj, parse_data) {
 
   # Report orphaned inputs
   if (length(orphaned_inputs) > 0) {
-    cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
-    cat("The following file_in() calls reference files that are not produced",
-        "by any file_out() call:\n")
-    cat(paste("\033[33m  -", orphaned_inputs, "\033[0m", collapse = "\n"),
-        "\n\n")
-    cat("Either:\n")
-    cat("1. Add a script that produces these files with file_out(), or\n")
-    cat("2. Change file_in() to external_in() if these are external files",
-        "provided by the user\n")
+    message("\n\033[31m[INVALID]\033[0m Pipeline validation failed")
+    message("The following file_in() calls reference files that are not produced",
+        " by any file_out() call:")
+    message(paste("\033[33m  -", orphaned_inputs, "\033[0m", collapse = "\n"),
+        "\n")
+    message("Either:")
+    message("1. Add a script that produces these files with file_out(), or")
+    message("2. Change file_in() to external_in() if these are external files",
+        " provided by the user")
     stop("Pipeline validation failed: ",
          paste(orphaned_inputs, collapse = ", "), call. = FALSE)
   }
 
   # Report multiple producers
   if (length(multiple_producer_artifacts) > 0) {
-    cat("\n\033[31m[INVALID]\033[0m Pipeline validation failed\n")
-    cat("The following artifacts have multiple producers:\n")
+    message("\n\033[31m[INVALID]\033[0m Pipeline validation failed")
+    message("The following artifacts have multiple producers:")
     for (artifact in multiple_producer_artifacts) {
       producers <- edges$from[edges$to == artifact &
                              edges$from %in% nodes$file[nodes$type == "script"]]
-      cat(sprintf("\033[33m  - %s\033[0m produced by: %s\n", 
+      message(sprintf("\033[33m  - %s\033[0m produced by: %s", 
                   artifact, paste(producers, collapse = ", ")))
     }
-    cat("\nEach artifact should have exactly one producer script.\n")
+    message("\nEach artifact should have exactly one producer script.")
     stop("Pipeline validation failed: ",
          paste(multiple_producer_artifacts, collapse = ", "), call. = FALSE)
   }
