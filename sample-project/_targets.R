@@ -14,7 +14,7 @@ list(
         },
         args = list(script_path = "01_clean_data.R")
       )
-      c("cleaned_data.csv")
+      c("cleaned_data.csv", "data_dictionary.csv")
     },
     format = "file"
   ),
@@ -23,6 +23,7 @@ list(
     output_02_analyze_data_r,
     {
       script_02_analyze_data_r
+      output_01_clean_data_r
       output_01_clean_data_r
       callr::r(
         func = function(script_path) {
