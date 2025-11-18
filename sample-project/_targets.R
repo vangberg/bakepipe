@@ -16,7 +16,8 @@ list(
         args = list(script_path = "01_clean_data.R")
       )
       c("cleaned_data.csv")
-    }
+    },
+    format = "file"
   ),
   tar_target(script_02_analyze_data_r, "02_analyze_data.R", format = "file"),
   tar_target(
@@ -31,7 +32,8 @@ list(
         args = list(script_path = "02_analyze_data.R")
       )
       c("analysis_results.rds")
-    }
+    },
+    format = "file"
   ),
   tar_target(script_03_generate_report_r, "03_generate_report.R", format = "file"),
   tar_target(
@@ -46,6 +48,7 @@ list(
         args = list(script_path = "03_generate_report.R")
       )
       c("report.txt")
-    }
+    },
+    format = "file"
   )
 )

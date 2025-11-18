@@ -19,7 +19,6 @@ generate_targets_file <- function() {
 
   # Add library calls
   lines <- c(lines, "library(targets)")
-  lines <- c(lines, "library(callr)")
   lines <- c(lines, "")
 
   # Add the list of targets

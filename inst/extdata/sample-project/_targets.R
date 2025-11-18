@@ -1,5 +1,4 @@
 library(targets)
-library(callr)
 
 list(
   tar_target(input_csv, "input.csv", format = "file"),
