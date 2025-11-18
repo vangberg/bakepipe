@@ -119,39 +119,22 @@ display_scripts_table_targets <- function(pipeline_data) {
     }
   )
 
-  # Get manifest to determine script order
-  manifest <- targets::tar_manifest(callr_function = NULL)
-
-  # Get script names in order they appear in manifest
-  # Create a map from run target names back to script names
+  # Get script names in order they appear in pipeline_data
   script_names <- names(pipeline_data$scripts)
+  
+  # Create a map from output target names back to script names
   target_to_script <- setNames(script_names, sapply(script_names, function(s) {
-    path_to_target_name(s, "run")
+    path_to_target_name(s, "output")
   }))
 
-  # Extract run targets in manifest order
-  run_targets <- manifest$name[grepl("^run_", manifest$name)]
+  # Determine state for each script based on output target
+  state_vec <- character(length(script_names))
+  for (i in seq_along(script_names)) {
+    script <- script_names[i]
+    # Convert script name to output target name
+    target_name <- path_to_target_name(script, "output")
 
-  # Map back to script names, preserving order
-  ordered_scripts <- character(0)
-  for (target in run_targets) {
-    if (target %in% names(target_to_script)) {
-      ordered_scripts <- c(ordered_scripts, target_to_script[[target]])
-    }
-  }
-
-  # Add any scripts not found in manifest (shouldn't happen, but be safe)
-  missing <- setdiff(script_names, ordered_scripts)
-  ordered_scripts <- c(ordered_scripts, missing)
-
-  # Determine state for each script
-  state_vec <- character(length(ordered_scripts))
-  for (i in seq_along(ordered_scripts)) {
-    script <- ordered_scripts[i]
-    # Convert script name to run target name using same function as generator
-    target_name <- path_to_target_name(script, "run")
-
-    # Check if this run target is outdated
+    # Check if this output target is outdated
     if (target_name %in% outdated) {
       state_vec[i] <- "stale"
     } else {
@@ -177,12 +160,26 @@ display_scripts_table_targets <- function(pipeline_data) {
   message("\n")
 
   # Calculate max script name width for alignment
-  max_width <- max(nchar(ordered_scripts))
+  max_width <- max(nchar(script_names))
 
-  # Display each script with status indicator
-  for (i in seq_along(ordered_scripts)) {
-    script <- ordered_scripts[i]
+  # Display each script with status indicator, inputs, and outputs
+  for (i in seq_along(script_names)) {
+    script <- script_names[i]
     state <- state_vec[i]
+    script_info <- pipeline_data$scripts[[script]]
+    
+    # Format inputs and outputs
+    inputs_str <- if (length(script_info$inputs) > 0) {
+      paste0("inputs: ", paste(script_info$inputs, collapse = ", "))
+    } else {
+      "inputs: (none)"
+    }
+    
+    outputs_str <- if (length(script_info$outputs) > 0) {
+      paste0("outputs: ", paste(script_info$outputs, collapse = ", "))
+    } else {
+      "outputs: (none)"
+    }
 
     if (state == "fresh") {
       message(sprintf(
@@ -195,6 +192,8 @@ display_scripts_table_targets <- function(pipeline_data) {
         max_width, script
       ))
     }
+    message(sprintf("     \033[2m  %s\033[0m", inputs_str))
+    message(sprintf("     \033[2m  %s\033[0m", outputs_str))
   }
 
   message("")
