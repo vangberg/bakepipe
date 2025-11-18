@@ -1,0 +1,5 @@
+"column","type"
+"name","character"
+"age","integer"
+"city","character"
+"age_group","character"
