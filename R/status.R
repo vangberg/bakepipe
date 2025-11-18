@@ -5,6 +5,7 @@
 #' @param verbose Logical. If TRUE (default), prints status information to console.
 #' @return NULL (invisibly). This function is called for its side effect of
 #'   displaying pipeline status information to the console.
+#' @importFrom stats setNames
 #' @examples
 #' # Copy sample project to temp directory  
 #' temp_dir <- tempfile()

@@ -17,4 +17,6 @@
 ^CRAN-SUBMISSION$
 ^\.beads$
 ^AGENTS\.md$
+^API_COMPATIBILITY\.md$
+^TARGETS_MIGRATION\.md$
 ^plans$

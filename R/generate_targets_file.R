@@ -5,6 +5,7 @@
 #' to use targets as a backend for pipeline execution.
 #'
 #' @return Invisibly returns the path to the generated _targets.R file
+#' @importFrom callr r
 #' @export
 generate_targets_file <- function() {
   # Parse all scripts to get dependencies
