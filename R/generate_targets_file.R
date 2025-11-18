@@ -69,11 +69,17 @@ generate_targets_file <- function() {
     }
 
     # Add input file targets (from other scripts)
+    # Find which script produces each input file
     for (input_file in script_info$inputs) {
-      input_target_name <- path_to_target_name(input_file, "")
-      # Note: We don't create the target here, it will be created
-      # as an output target from another script
-      deps <- c(deps, input_target_name)
+      # Search through all scripts to find which one produces this input
+      for (producer_script in names(parsed$scripts)) {
+        if (input_file %in% parsed$scripts[[producer_script]]$outputs) {
+          # Found the producer script - depend on its output target
+          input_target_name <- path_to_target_name(producer_script, "output")
+          deps <- c(deps, input_target_name)
+          break
+        }
+      }
     }
 
     # Generate run target using callr
@@ -107,16 +113,20 @@ generate_targets_file <- function() {
 
     target_lines <- c(target_lines, run_lines)
 
-    # Generate output file targets
-    for (output_file in script_info$outputs) {
-      output_target_name <- path_to_target_name(output_file, "")
+    # Generate single output target returning vector of files
+    if (length(script_info$outputs) > 0) {
+      output_target_name <- path_to_target_name(script_name, "output")
+      
+      # Create vector of output files as R code
+      output_files_r <- paste0('"', script_info$outputs, '"', collapse = ", ")
+      
       target_lines <- c(
         target_lines,
         sprintf(
-          '  tar_target(%s, { %s; "%s" }, format = "file"),',
+          '  tar_target(%s, { %s; c(%s) }, format = "file"),',
           output_target_name,
           run_target_name,
-          output_file
+          output_files_r
         )
       )
       all_file_targets <- c(all_file_targets, output_target_name)

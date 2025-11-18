@@ -52,10 +52,10 @@ write.csv(result, file_out("output.csv"))
   expect_match(targets_text, "callr::r\\(")
   expect_match(targets_text, "script_path = \"process.R\"")
 
-  # Should have output target dependent on run_process
-  expect_match(targets_text, "tar_target\\(output_csv,")
-  expect_match(targets_text, "run_process")
-  expect_match(targets_text, "\"output.csv\"")
+  # Should have output target returning vector, dependent on run_process
+  expect_match(targets_text, "tar_target\\(output_process_r,")
+  expect_match(targets_text, "run_process_r")
+  expect_match(targets_text, "c\\(\"output.csv\"\\)")
   expect_match(targets_text, "format = \"file\"")
 
   # Cleanup
@@ -63,7 +63,7 @@ write.csv(result, file_out("output.csv"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("generate_targets_file() creates separate targets for multiple outputs", {
+test_that("generate_targets_file() returns vector for multiple outputs", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -91,20 +91,21 @@ write.csv(data[11:20, ], file_out("part_b.csv"))
   targets_file <- file.path(project_dir, "_targets.R")
   targets_text <- paste(readLines(targets_file), collapse = "\n")
 
-  # Should have separate output targets
-  expect_match(targets_text, "tar_target\\(part_a_csv,")
-  expect_match(targets_text, "tar_target\\(part_b_csv,")
+  # Should have single output target returning vector
+  expect_match(targets_text, "tar_target\\(output_split_r,")
 
-  # Both should depend on run_split
-  expect_match(targets_text, "run_split.*part_a.csv")
-  expect_match(targets_text, "run_split.*part_b.csv")
+  # Should return c() with both outputs
+  expect_match(targets_text, "c\\(\"part_a.csv\", \"part_b.csv\"\\)")
+
+  # Should depend on run_split
+  expect_match(targets_text, "run_split")
 
   # Cleanup
   setwd(old_wd)
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("generate_targets_file() fine-grained deps from file_in()", {
+test_that("generate_targets_file() depends on producer output target", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -148,21 +149,18 @@ write.csv(result, file_out("analysis_b.csv"))
   targets_file <- file.path(project_dir, "_targets.R")
   targets_text <- paste(readLines(targets_file), collapse = "\n")
 
-  # run_02_analyze_a should depend on type_a_csv, NOT type_b_csv
-  # We can check this by looking at the dependencies in the run_02_analyze_a target
+  # run_02_analyze_a should depend on output_01_split_r (producer target)
+  # Note: It depends on the entire output target, not individual files
   expect_match(targets_text, "run_02_analyze_a")
-
-  # Extract the run_02_analyze_a target definition
-  # It should reference type_a_csv but not type_b_csv
-  expect_match(targets_text, "type_a_csv")
+  expect_match(targets_text, "output_01_split_r")
 
   # Similarly for run_03_analyze_b
   expect_match(targets_text, "run_03_analyze_b")
-  expect_match(targets_text, "type_b_csv")
+  expect_match(targets_text, "output_01_split_r")
 
-  # The key test: in the actual execution, changing type_b.csv
-  # should NOT trigger rerun of 02_analyze_a.R
-  # (This will be tested in integration tests)
+  # Script 1 output target returns vector of both files
+  expect_match(targets_text, "tar_target\\(output_01_split_r,")
+  expect_match(targets_text, "c\\(\"type_a.csv\", \"type_b.csv\"\\)")
 
   # Cleanup
   setwd(old_wd)
@@ -380,11 +378,12 @@ write.csv(data, file_out("backup.data.csv"))
   # raw-data.csv becomes raw_data_csv (hyphens to underscores)
   expect_match(targets_text, "raw_data_csv")
 
-  # processed_data.csv becomes processed_data_csv
-  expect_match(targets_text, "processed_data_csv")
+  # Output target named after script: output_01_process_data_r
+  expect_match(targets_text, "tar_target\\(output_01_process_data_r,")
 
-  # backup.data.csv becomes backup_data_csv (dots to underscores)
-  expect_match(targets_text, "backup_data_csv")
+  # Output vector contains the filenames (with special chars replaced)
+  expect_match(targets_text, "\"processed_data\\.csv\"")
+  expect_match(targets_text, "\"backup\\.data\\.csv\"")
 
   # Cleanup
   setwd(old_wd)

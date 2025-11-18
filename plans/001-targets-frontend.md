@@ -13,7 +13,7 @@ the targets package instead?
 
 ## Generated Target Structure
 
-Fine-grained dependencies inferred from `file_in()` calls:
+Dependencies inferred from `file_in()` calls; output targets return file vectors:
 
 ```r
 # Script 1: 01_process.R
@@ -24,20 +24,17 @@ Fine-grained dependencies inferred from `file_in()` calls:
 tar_target(script_01_process_r, "01_process.R", format = "file")
 tar_target(input_csv, "input.csv", format = "file")
 
-# Execution target - runs script once
+# Single output target returning vector of files
 tar_target(
-  run_01_process,
+  output_01_process,
   {
     script_01_process_r
     input_csv
     source("01_process.R")
-    TRUE
-  }
+    c("output_a.csv", "output_b.csv")
+  },
+  format = "file"
 )
-
-# Individual output targets
-tar_target(output_a_csv, { run_01_process; "output_a.csv" }, format = "file")
-tar_target(output_b_csv, { run_01_process; "output_b.csv" }, format = "file")
 
 # Script 2: 02_analyze.R
 # data <- read.csv(file_in("output_a.csv"))  # Only uses output_a!
@@ -45,22 +42,22 @@ tar_target(output_b_csv, { run_01_process; "output_b.csv" }, format = "file")
 
 tar_target(script_02_analyze_r, "02_analyze.R", format = "file")
 tar_target(
-  run_02_analyze,
+  output_02_analyze,
   {
     script_02_analyze_r
-    output_a_csv  # ONLY output_a - inferred from file_in() call!
+    output_01_process  # Depends on all outputs from script 1
     source("02_analyze.R")
-    TRUE
-  }
+    c("analysis.csv")
+  },
+  format = "file"
 )
-tar_target(analysis_csv, { run_02_analyze; "analysis.csv" }, format = "file")
 ```
 
 **Key design**:
-- Script runs once via `run_*` target
-- Each output is separate target
-- Dependencies inferred from `file_in()` calls - script 2 only depends on `output_a_csv`
-- Changes to `output_b.csv` won't trigger script 2 rerun
+- Each script produces one target that returns a vector of output files
+- Any change to any output file invalidates the entire target
+- Manual edits to output files are detected (file content changes)
+- Trade-off: loses fine-grained dependency tracking (script 2 depends on all of script 1's outputs)
 
 ## Implementation
 
