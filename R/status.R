@@ -168,9 +168,10 @@ display_scripts_table_targets <- function(pipeline_data) {
     state <- state_vec[i]
     script_info <- pipeline_data$scripts[[script]]
     
-    # Format inputs and outputs
-    inputs_str <- if (length(script_info$inputs) > 0) {
-      paste0("inputs: ", paste(script_info$inputs, collapse = ", "))
+    # Format inputs (both external and from other scripts)
+    all_inputs <- c(script_info$externals, script_info$inputs)
+    inputs_str <- if (length(all_inputs) > 0) {
+      paste0("inputs: ", paste(all_inputs, collapse = ", "))
     } else {
       "inputs: (none)"
     }
