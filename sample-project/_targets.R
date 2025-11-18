@@ -18,13 +18,13 @@ list(
       TRUE
     }
   ),
-  tar_target(cleaned_data_csv, { run_01_clean_data_r; "cleaned_data.csv" }, format = "file"),
+  tar_target(output_01_clean_data_r, { run_01_clean_data_r; c("cleaned_data.csv") }, format = "file"),
   tar_target(script_02_analyze_data_r, "02_analyze_data.R", format = "file"),
   tar_target(
     run_02_analyze_data_r,
     {
       script_02_analyze_data_r
-      cleaned_data_csv
+      output_01_clean_data_r
       callr::r(
         func = function(script_path) {
           source(script_path, local = TRUE)
@@ -34,13 +34,13 @@ list(
       TRUE
     }
   ),
-  tar_target(analysis_results_rds, { run_02_analyze_data_r; "analysis_results.rds" }, format = "file"),
+  tar_target(output_02_analyze_data_r, { run_02_analyze_data_r; c("analysis_results.rds") }, format = "file"),
   tar_target(script_03_generate_report_r, "03_generate_report.R", format = "file"),
   tar_target(
     run_03_generate_report_r,
     {
       script_03_generate_report_r
-      analysis_results_rds
+      output_02_analyze_data_r
       callr::r(
         func = function(script_path) {
           source(script_path, local = TRUE)
@@ -50,19 +50,5 @@ list(
       TRUE
     }
   ),
-  tar_target(report_txt, { run_03_generate_report_r; "report.txt" }, format = "file"),
-  tar_target(script_targets_r, "_targets.R", format = "file"),
-  tar_target(
-    run_targets_r,
-    {
-      script_targets_r
-      callr::r(
-        func = function(script_path) {
-          source(script_path, local = TRUE)
-        },
-        args = list(script_path = "_targets.R")
-      )
-      TRUE
-    }
-  )
+  tar_target(output_03_generate_report_r, { run_03_generate_report_r; c("report.txt") }, format = "file")
 )

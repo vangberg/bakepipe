@@ -13,7 +13,7 @@ the targets package instead?
 
 ## Generated Target Structure
 
-Dependencies inferred from `file_in()` calls; output targets return file vectors:
+Minimal targets: one per script + external inputs
 
 ```r
 # Script 1: 01_process.R
@@ -21,14 +21,11 @@ Dependencies inferred from `file_in()` calls; output targets return file vectors
 # write.csv(subset_a, file_out("output_a.csv"))
 # write.csv(subset_b, file_out("output_b.csv"))
 
-tar_target(script_01_process_r, "01_process.R", format = "file")
 tar_target(input_csv, "input.csv", format = "file")
 
-# Single output target returning vector of files
 tar_target(
   output_01_process,
   {
-    script_01_process_r
     input_csv
     source("01_process.R")
     c("output_a.csv", "output_b.csv")
@@ -37,15 +34,13 @@ tar_target(
 )
 
 # Script 2: 02_analyze.R
-# data <- read.csv(file_in("output_a.csv"))  # Only uses output_a!
+# data <- read.csv(file_in("output_a.csv"))
 # write.csv(results, file_out("analysis.csv"))
 
-tar_target(script_02_analyze_r, "02_analyze.R", format = "file")
 tar_target(
   output_02_analyze,
   {
-    script_02_analyze_r
-    output_01_process  # Depends on all outputs from script 1
+    output_01_process
     source("02_analyze.R")
     c("analysis.csv")
   },
@@ -54,10 +49,10 @@ tar_target(
 ```
 
 **Key design**:
-- Each script produces one target that returns a vector of output files
-- Any change to any output file invalidates the entire target
-- Manual edits to output files are detected (file content changes)
-- Trade-off: loses fine-grained dependency tracking (script 2 depends on all of script 1's outputs)
+- One target per script, returns vector of output files
+- Dependencies listed explicitly at top of target
+- No separate script/run/output targets
+- Manual edits to any output file invalidate the target
 
 ## Implementation
 

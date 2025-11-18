@@ -19,7 +19,6 @@ generate_targets_file <- function() {
 
   # Add library calls
   lines <- c(lines, "library(targets)")
-  lines <- c(lines, "library(callr)")
   lines <- c(lines, "")
 
   # Add the list of targets
@@ -31,27 +30,10 @@ generate_targets_file <- function() {
   # Track all files that need file targets
   all_file_targets <- character(0)
 
-  # Generate targets for each script
+  # First pass: add all external input file targets
   for (script_name in names(parsed$scripts)) {
     script_info <- parsed$scripts[[script_name]]
-
-    # Generate target name from script path
-    script_target_name <- path_to_target_name(script_name, "script")
-
-    # Add script file target
-    target_lines <- c(
-      target_lines,
-      sprintf(
-        '  tar_target(%s, "%s", format = "file"),',
-        script_target_name,
-        script_name
-      )
-    )
-
-    # Collect dependencies for the run target
-    deps <- c(script_target_name)
-
-    # Add external input file targets
+    
     for (ext_file in script_info$externals) {
       ext_target_name <- path_to_target_name(ext_file, "")
       if (!(ext_target_name %in% all_file_targets)) {
@@ -65,11 +47,38 @@ generate_targets_file <- function() {
         )
         all_file_targets <- c(all_file_targets, ext_target_name)
       }
+    }
+  }
+
+  # Second pass: generate one target per script
+  for (script_name in names(parsed$scripts)) {
+    script_info <- parsed$scripts[[script_name]]
+
+    # Generate target name from script path
+    output_target_name <- path_to_target_name(script_name, "output")
+
+    # Collect dependencies
+    deps <- character(0)
+
+    # Track the script itself so changes are detected
+    script_target_name <- path_to_target_name(script_name, "script")
+    target_lines <- c(
+      target_lines,
+      sprintf(
+        '  tar_target(%s, "%s", format = "file"),',
+        script_target_name,
+        script_name
+      )
+    )
+    deps <- c(deps, script_target_name)
+
+    # Add external input dependencies
+    for (ext_file in script_info$externals) {
+      ext_target_name <- path_to_target_name(ext_file, "")
       deps <- c(deps, ext_target_name)
     }
 
-    # Add input file targets (from other scripts)
-    # Find which script produces each input file
+    # Add input file dependencies (from other scripts)
     for (input_file in script_info$inputs) {
       # Search through all scripts to find which one produces this input
       for (producer_script in names(parsed$scripts)) {
@@ -82,55 +91,44 @@ generate_targets_file <- function() {
       }
     }
 
-    # Generate run target using callr
-    run_target_name <- path_to_target_name(script_name, "run")
-
-    # Build the run target
-    run_lines <- c(
+    # Build the script target
+    target_start <- c(
       sprintf("  tar_target("),
-      sprintf("    %s,", run_target_name),
+      sprintf("    %s,", output_target_name),
       sprintf("    {")
     )
 
     # Add dependencies
+    dep_lines <- character(0)
     for (dep in deps) {
-      run_lines <- c(run_lines, sprintf("      %s", dep))
+      dep_lines <- c(dep_lines, sprintf("      %s", dep))
     }
 
-    # Add callr execution
-    run_lines <- c(
-      run_lines,
-      sprintf("      callr::r("),
-      sprintf("        func = function(script_path) {"),
-      sprintf("          source(script_path, local = TRUE)"),
-      sprintf("        },"),
-      sprintf('        args = list(script_path = "%s")', script_name),
-      sprintf("      )"),
-      sprintf("      TRUE"),
+    # Add script execution
+    exec_lines <- c(
+      sprintf("      source(\"%s\")", script_name)
+    )
+
+    # Add output vector if script has outputs
+    output_lines <- character(0)
+    if (length(script_info$outputs) > 0) {
+      output_files_r <- paste0('"', script_info$outputs, '"', collapse = ", ")
+      output_lines <- c(output_lines, sprintf("      c(%s)", output_files_r))
+    } else {
+      # No outputs - return TRUE to indicate script ran
+      output_lines <- c(output_lines, sprintf("      TRUE"))
+    }
+
+    target_end <- c(
       sprintf("    }"),
       sprintf("  ),")
     )
 
-    target_lines <- c(target_lines, run_lines)
+    # Combine all parts
+    full_target <- c(target_start, dep_lines, exec_lines, output_lines, target_end)
+    target_lines <- c(target_lines, full_target)
 
-    # Generate single output target returning vector of files
-    if (length(script_info$outputs) > 0) {
-      output_target_name <- path_to_target_name(script_name, "output")
-      
-      # Create vector of output files as R code
-      output_files_r <- paste0('"', script_info$outputs, '"', collapse = ", ")
-      
-      target_lines <- c(
-        target_lines,
-        sprintf(
-          '  tar_target(%s, { %s; c(%s) }, format = "file"),',
-          output_target_name,
-          run_target_name,
-          output_files_r
-        )
-      )
-      all_file_targets <- c(all_file_targets, output_target_name)
-    }
+    all_file_targets <- c(all_file_targets, output_target_name)
   }
 
   # Remove trailing comma from last target

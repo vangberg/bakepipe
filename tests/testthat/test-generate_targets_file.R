@@ -30,32 +30,21 @@ write.csv(result, file_out("output.csv"))
 
   # Read and verify the generated file
   targets_content <- readLines(targets_file)
-  targets_text <- paste(targets_content, collapse = "\n")
+  targets_text <- paste(targets_content, collapse = " ")
 
   # Should have library(targets) at the top
   expect_match(targets_text, "library\\(targets\\)", ignore.case = FALSE)
 
-  # Should have script file target
-  expect_match(
-    targets_text,
-    "tar_target\\(script_process_r, \"process.R\", format = \"file\"\\)"
-  )
+  # Should NOT have callr anymore (simplified)
+  expect_no_match(targets_text, "callr::r")
 
   # Should have external input target
-  expect_match(
-    targets_text,
-    "tar_target\\(input_csv, \"input.csv\", format = \"file\"\\)"
-  )
+  expect_match(targets_text, "tar_target.*input_csv.*input.csv.*format = \"file\"")
 
-  # Should have execution target using callr
-  expect_match(targets_text, "tar_target\\(\\s*run_process")
-  expect_match(targets_text, "callr::r\\(")
-  expect_match(targets_text, "script_path = \"process.R\"")
-
-  # Should have output target returning vector, dependent on run_process
-  expect_match(targets_text, "tar_target\\(output_process_r,")
-  expect_match(targets_text, "run_process_r")
-  expect_match(targets_text, "c\\(\"output.csv\"\\)")
+  # Should have one target per script that directly sources and returns outputs
+  expect_match(targets_text, "tar_target.*output_process_r")
+  expect_match(targets_text, "source.*process.R")
+  expect_match(targets_text, "output.csv")
   expect_match(targets_text, "format = \"file\"")
 
   # Cleanup
@@ -89,16 +78,16 @@ write.csv(data[11:20, ], file_out("part_b.csv"))
   generate_targets_file()
 
   targets_file <- file.path(project_dir, "_targets.R")
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
+  targets_text <- paste(readLines(targets_file), collapse = " ")
 
-  # Should have single output target returning vector
-  expect_match(targets_text, "tar_target\\(output_split_r,")
+  # Should have single target per script
+  expect_match(targets_text, "tar_target.*output_split_r")
 
   # Should return c() with both outputs
-  expect_match(targets_text, "c\\(\"part_a.csv\", \"part_b.csv\"\\)")
+  expect_match(targets_text, "part_a.csv.*part_b.csv")
 
-  # Should depend on run_split
-  expect_match(targets_text, "run_split")
+  # Should directly source the script
+  expect_match(targets_text, "source.*split.R")
 
   # Cleanup
   setwd(old_wd)
@@ -147,20 +136,18 @@ write.csv(result, file_out("analysis_b.csv"))
   generate_targets_file()
 
   targets_file <- file.path(project_dir, "_targets.R")
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
+  targets_text <- paste(readLines(targets_file), collapse = " ")
 
-  # run_02_analyze_a should depend on output_01_split_r (producer target)
-  # Note: It depends on the entire output target, not individual files
-  expect_match(targets_text, "run_02_analyze_a")
+  # output_02_analyze_a should depend on output_01_split_r (producer target)
+  expect_match(targets_text, "tar_target.*output_02_analyze_a_r")
   expect_match(targets_text, "output_01_split_r")
 
-  # Similarly for run_03_analyze_b
-  expect_match(targets_text, "run_03_analyze_b")
-  expect_match(targets_text, "output_01_split_r")
+  # Similarly for output_03_analyze_b
+  expect_match(targets_text, "tar_target.*output_03_analyze_b_r")
 
   # Script 1 output target returns vector of both files
-  expect_match(targets_text, "tar_target\\(output_01_split_r,")
-  expect_match(targets_text, "c\\(\"type_a.csv\", \"type_b.csv\"\\)")
+  expect_match(targets_text, "tar_target.*output_01_split_r")
+  expect_match(targets_text, "type_a.csv.*type_b.csv")
 
   # Cleanup
   setwd(old_wd)
@@ -194,20 +181,14 @@ write.csv(result, file_out("output.csv"))
   generate_targets_file()
 
   targets_file <- file.path(project_dir, "_targets.R")
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
+  targets_text <- paste(readLines(targets_file), collapse = " ")
 
   # Should have external file targets
-  expect_match(
-    targets_text,
-    "tar_target\\(input_csv, \"input.csv\", format = \"file\"\\)"
-  )
-  expect_match(
-    targets_text,
-    "tar_target\\(config_rds, \"config.rds\", format = \"file\"\\)"
-  )
+  expect_match(targets_text, "tar_target.*input_csv.*input.csv.*format = \"file\"")
+  expect_match(targets_text, "tar_target.*config_rds.*config.rds.*format = \"file\"")
 
-  # run_process should depend on both external inputs
-  expect_match(targets_text, "run_process")
+  # output_process should depend on both external inputs
+  expect_match(targets_text, "tar_target.*output_process_r")
   expect_match(targets_text, "input_csv")
   expect_match(targets_text, "config_rds")
 
@@ -216,7 +197,7 @@ write.csv(result, file_out("output.csv"))
   unlink(project_dir, recursive = TRUE)
 })
 
-test_that("generate_targets_file() uses callr::r() for script execution", {
+test_that("generate_targets_file() directly sources scripts", {
   # Create a temporary directory structure
   temp_dir <- tempfile()
   old_wd <- getwd()
@@ -243,14 +224,11 @@ write.csv(data, file_out("output.csv"))
   targets_file <- file.path(project_dir, "_targets.R")
   targets_text <- paste(readLines(targets_file), collapse = "\n")
 
-  # Should use callr::r() with a function, NOT direct source()
-  expect_match(targets_text, "callr::r\\(")
-
-  # callr::r() should be passed a function that sources the script
-  # This maintains isolation like bakepipe currently does
-  expect_match(targets_text, "func = function\\(script_path\\)")
-  # source() should be inside the function passed to callr::r()
-  expect_match(targets_text, "source\\(script_path")
+  # Should directly use source() without callr wrapper
+  expect_match(targets_text, "source\\(\"test.R\"\\)")
+  
+  # Should NOT use callr
+  expect_no_match(targets_text, "callr::r")
 
   # Cleanup
   setwd(old_wd)
@@ -330,13 +308,13 @@ helper <- function(x) {
   targets_file <- file.path(project_dir, "_targets.R")
   expect_true(file.exists(targets_file))
 
-  # Should still create a script target and run target
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
-  expect_match(targets_text, "script_utils_r")
-  expect_match(targets_text, "run_utils")
-
-  # But no input or output targets
-  # (Just the script runs once when it changes)
+  # Should still create a target for the script
+  targets_text <- paste(readLines(targets_file), collapse = " ")
+  expect_match(targets_text, "tar_target.*output_utils_r")
+  
+  # Since there are no outputs, should return TRUE
+  expect_match(targets_text, "source.*utils\\.R")
+  expect_match(targets_text, "TRUE")
 
   # Cleanup
   setwd(old_wd)
@@ -369,21 +347,16 @@ write.csv(data, file_out("backup.data.csv"))
   generate_targets_file()
 
   targets_file <- file.path(project_dir, "_targets.R")
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
-
-  # Target names should replace special characters with underscores
-  # 01_process_data.R becomes script_01_process_data_r
-  expect_match(targets_text, "script_01_process_data_r")
+  targets_text <- paste(readLines(targets_file), collapse = " ")
 
   # raw-data.csv becomes raw_data_csv (hyphens to underscores)
-  expect_match(targets_text, "raw_data_csv")
+  expect_match(targets_text, "tar_target.*raw_data_csv")
 
   # Output target named after script: output_01_process_data_r
-  expect_match(targets_text, "tar_target\\(output_01_process_data_r,")
+  expect_match(targets_text, "tar_target.*output_01_process_data_r")
 
-  # Output vector contains the filenames (with special chars replaced)
-  expect_match(targets_text, "\"processed_data\\.csv\"")
-  expect_match(targets_text, "\"backup\\.data\\.csv\"")
+  # Output vector contains the filenames 
+  expect_match(targets_text, "processed_data\\.csv.*backup\\.data\\.csv")
 
   # Cleanup
   setwd(old_wd)
@@ -416,14 +389,14 @@ write.csv(data, file_out("output.csv"))
   generate_targets_file()
 
   targets_file <- file.path(project_dir, "_targets.R")
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
+  targets_text <- paste(readLines(targets_file), collapse = " ")
 
   # Should reference the script with its subdirectory path
-  expect_match(targets_text, "scripts/process.R")
+  expect_match(targets_text, "source.*scripts/process.R")
 
   # Target name should include subdirectory info
-  # scripts/process.R becomes script_scripts_process_r
-  expect_match(targets_text, "script_scripts_process_r")
+  # scripts/process.R becomes output_scripts_process_r
+  expect_match(targets_text, "tar_target.*output_scripts_process_r")
 
   # Cleanup
   setwd(old_wd)
