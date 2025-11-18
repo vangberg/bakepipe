@@ -4,7 +4,8 @@
 #' scripts that are stale (have changed or have stale dependencies) for
 #' incremental execution.
 #'
-#' @param verbose Logical. If TRUE (default), prints progress messages to console.
+#' @param verbose Logical. If TRUE (default), prints progress messages
+#'   to console.
 #' @return Character vector of files that were created or updated
 #' @examples
 #' # Copy sample project to temp directory
@@ -44,7 +45,9 @@ run <- function(verbose = TRUE) {
   generate_targets_file()
 
   # Store outputs before running to track what gets created
-  all_outputs <- unique(unlist(lapply(pipeline_data$scripts, function(s) s$outputs)))
+  all_outputs <- unique(unlist(
+    lapply(pipeline_data$scripts, function(s) s$outputs)
+  ))
 
   # Store modification times of output files before running
   output_times_before <- sapply(all_outputs, function(f) {
