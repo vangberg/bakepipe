@@ -20,7 +20,7 @@
 #' setwd(file.path(temp_dir, "sample-project"))
 #'
 #' # Run the pipeline first to create output files
-#' run(verbose = FALSE)
+#' run()
 #'
 #' # Now clean up the generated files
 #' removed_files <- clean()
@@ -30,120 +30,34 @@
 #' setwd(old_wd)
 #' unlink(temp_dir, recursive = TRUE)
 clean <- function(verbose = TRUE) {
-  # Parse all scripts to get dependencies
-  dependencies <- parse()
+  deps <- parse()
 
-  # If no scripts found, return empty vector
-  if (length(dependencies$scripts) == 0) {
-    if (verbose) {
-      message("\n[CLEAN] \033[1;36mBakepipe Clean\033[0m")
-      message("\033[33m   No output files found to clean\033[0m\n")
-    }
-    return(character(0))
-  }
+  # Collect all output files
+  files <- unique(unlist(lapply(deps$scripts, function(s) s$outputs)))
 
-  # Get all outputs from the top-level outputs list
-  all_outputs <- dependencies$outputs
+  # Add targets artifacts
+  files <- c(files, "_targets.R")
 
-  # Only try to remove files that actually exist
-  existing_files <- all_outputs[file.exists(all_outputs)]
-
-  # Track all files to be removed (outputs + targets files)
-  files_to_remove <- existing_files
-
-  # Check for _targets.R
-  targets_r <- file.path(root(), "_targets.R")
-  if (file.exists(targets_r)) {
-    files_to_remove <- c(files_to_remove, "_targets.R")
-  }
-
-  # Print header
-  if (verbose) {
-    message("\n[CLEAN] \033[1;36mBakepipe Clean\033[0m")
-
-    if (length(files_to_remove) == 0 && !dir.exists("_targets")) {
-      message("\033[32m[OK] No output files to clean - all clean!\033[0m\n")
-      return(character(0))
-    }
-
-    message(paste0(
-      "\033[33m   Found ", length(files_to_remove), " file",
-      if (length(files_to_remove) != 1) "s" else "", " to remove\033[0m\n"
-    ))
-  } else if (length(files_to_remove) == 0 && !dir.exists("_targets")) {
-    return(character(0))
-  }
-
-  # Calculate max filename width for alignment
-  if (length(files_to_remove) > 0) {
-    max_width <- max(nchar(files_to_remove))
-  } else {
-    max_width <- 0
-  }
-
-  # Remove the files with progress indicators
-  removed_files <- character(0)
-  failed_files <- character(0)
-
-  for (file_path in files_to_remove) {
-    if (file.remove(file_path)) {
-      removed_files <- c(removed_files, file_path)
-      if (verbose) {
-        message(sprintf("\033[31m[RM]  %s\033[0m", file_path))
-      }
-    } else {
-      failed_files <- c(failed_files, file_path)
-      if (verbose) {
-        message(sprintf(
-          "\033[33m[!]  %-*s \033[2m(failed to remove)\033[0m",
-          max_width, file_path
-        ))
-      }
+  # Track removed files
+  removed_files <- character()
+  removed <- 0
+  for (f in files) {
+    if (file.exists(f)) {
+      file.remove(f)
+      removed_files <- c(removed_files, f)
+      removed <- removed + 1
     }
   }
 
-  # Remove targets metadata directory using targets::tar_destroy()
-  targets_dir <- file.path(root(), "_targets")
-  if (dir.exists(targets_dir)) {
-    tryCatch(
-      {
-        if (verbose) {
-          message("\033[31m[RM]  _targets/\033[0m")
-        }
-        targets::tar_destroy(destroy = "all", ask = FALSE)
-      },
-      error = function(e) {
-        # If targets::tar_destroy() fails, remove directory manually
-        unlink(targets_dir, recursive = TRUE)
-        if (verbose) {
-          message("\033[31m[RM]  _targets/\033[0m")
-        }
-      }
-    )
+  # Remove _targets directory
+  if (dir.exists("_targets")) {
+    unlink("_targets", recursive = TRUE)
+    removed <- removed + 1
   }
 
-  # Print summary
-  if (verbose) {
-    message("\n\033[1;36m[SUMMARY]\033[0m")
-
-    if (length(removed_files) > 0) {
-      message(sprintf(
-        "\033[32m   Removed %d file%s\033[0m",
-        length(removed_files),
-        if (length(removed_files) > 1) "s" else ""
-      ))
-    }
-
-    if (length(failed_files) > 0) {
-      message(sprintf(
-        "\033[33m   Failed to remove %d file%s\033[0m",
-        length(failed_files),
-        if (length(failed_files) > 1) "s" else ""
-      ))
-    }
-
-    message("")
+  if (verbose && removed > 0) {
+    message(sprintf("✓ removed %d artifact%s", removed, if (removed != 1) "s" else ""))
   }
 
-  removed_files
+  invisible(removed_files)
 }

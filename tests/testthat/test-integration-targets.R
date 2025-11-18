@@ -38,7 +38,7 @@ write.csv(result, file_out(\"final.csv\"), row.names = FALSE)
   skip_if_not_installed("targets")
 
   # Run complete pipeline
-  result <- capture.output({result_value <- run(verbose = FALSE)})
+  result <- capture.output({result_value <- run()})
   result <- result_value
 
   # Verify all outputs created
@@ -53,11 +53,11 @@ write.csv(result, file_out(\"final.csv\"), row.names = FALSE)
 
   # Check status shows all fresh
   status_output <- capture.output(status(verbose = TRUE), type = "message")
-  expect_true(any(grepl("3 fresh script", status_output)))
+  expect_true(any(grepl("3 scripts up to date", status_output)))
 
   # Run again - should skip everything
   Sys.sleep(1)
-  result2 <- capture.output({result2_value <- run(verbose = FALSE)})
+  result2 <- capture.output({result2_value <- run()})
   result2 <- result2_value
   expect_length(result2, 0)
 
@@ -135,7 +135,7 @@ write.csv(final, file_out(\"final.csv\"), row.names = FALSE)
   skip_if_not_installed("targets")
 
   # Run pipeline
-  result <- capture.output({result_value <- run(verbose = FALSE)})
+  result <- capture.output({result_value <- run()})
   result <- result_value
 
   # Verify all outputs
@@ -161,7 +161,7 @@ write.csv(result, file_out(\"result_a.csv\"), row.names = FALSE)
   Sys.sleep(1)
 
   # Run again - should only rerun process_a and combine
-  result2 <- capture.output({result2_value <- run(verbose = FALSE)})
+  result2 <- capture.output({result2_value <- run()})
   result2 <- result2_value
 
   expect_true("result_a.csv" %in% result2)
@@ -223,7 +223,7 @@ write.csv(result, file_out(\"result_second.csv\"), row.names = FALSE)
   skip_if_not_installed("targets")
 
   # Run pipeline
-  result <- capture.output({result_value <- run(verbose = FALSE)})
+  result <- capture.output({result_value <- run()})
   result <- result_value
 
   # Verify all outputs
@@ -282,7 +282,7 @@ write.csv(result, file_out(\"summary.csv\"), row.names = FALSE)
   skip_if_not_installed("targets")
 
   # Run pipeline
-  result <- capture.output({result_value <- run(verbose = FALSE)})
+  result <- capture.output({result_value <- run()})
   result <- result_value
 
   # Verify outputs
@@ -299,7 +299,7 @@ write.csv(result, file_out(\"summary.csv\"), row.names = FALSE)
   Sys.sleep(1)
 
   # Run again - should detect external file change
-  result2 <- capture.output({result2_value <- run(verbose = FALSE)})
+  result2 <- capture.output({result2_value <- run()})
   result2 <- result2_value
 
   expect_true("processed.csv" %in% result2)
@@ -354,7 +354,7 @@ write.csv(result, file_out(\"step3.csv\"), row.names = FALSE)
   skip_if_not_installed("targets")
 
   # Initial run
-  result1 <- capture.output({result1_value <- run(verbose = FALSE)})
+  result1 <- capture.output({result1_value <- run()})
   result1 <- result1_value
 
   expect_true(file.exists("step1.csv"))
@@ -375,7 +375,7 @@ write.csv(data, file_out(\"step2.csv\"), row.names = FALSE)
   Sys.sleep(1)
 
   # Run again - should only rerun step2 and step3
-  result2 <- capture.output({result2_value <- run(verbose = FALSE)})
+  result2 <- capture.output({result2_value <- run()})
   result2 <- result2_value
 
   expect_false("step1.csv" %in% result2)
@@ -419,7 +419,7 @@ stop(\"Intentional error for testing\")
 
   # Run should fail
   expect_error(
-    capture.output(run(verbose = FALSE)),
+    capture.output(run()),
     "error"
   )
 
@@ -431,7 +431,7 @@ write.csv(data, file_out(\"output.csv\"), row.names = FALSE)
 ", file = script1)
 
   # Run again - should succeed
-  result <- capture.output({result_value <- run(verbose = FALSE)})
+  result <- capture.output({result_value <- run()})
   result <- result_value
 
   expect_true(file.exists("output.csv"))
@@ -492,7 +492,7 @@ write.csv(result, file_out(\"result_y.csv\"), row.names = FALSE)
   skip_if_not_installed("targets")
 
   # Initial run
-  result1 <- capture.output({result1_value <- run(verbose = FALSE)})
+  result1 <- capture.output({result1_value <- run()})
   result1 <- result1_value
 
   expect_true(file.exists("data_x.csv"))
@@ -518,7 +518,7 @@ write.csv(data.frame(z = 11:15), file_out(\"data_z.csv\"),
   Sys.sleep(1)
 
   # Run again
-  result2 <- capture.output({result2_value <- run(verbose = FALSE)})
+  result2 <- capture.output({result2_value <- run()})
   result2 <- result2_value
 
   # With simplified approach, both use_x and use_y depend on entire output target

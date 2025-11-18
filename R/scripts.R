@@ -16,8 +16,8 @@ scripts <- function() {
     ignore.case = TRUE
   )
 
-  # Filter out _bakepipe.R and _targets.R files
-  r_files <- r_files[!grepl("_bakepipe\\.R$|_targets\\.R$", r_files, ignore.case = TRUE)]
+  # Filter out _bakepipe.R and _targets.R files, and renv
+  r_files <- r_files[!grepl("_bakepipe\\.R$|_targets\\.R$|renv/", r_files, ignore.case = TRUE)]
 
   # Return normalized paths
   normalizePath(r_files)

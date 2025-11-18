@@ -120,8 +120,8 @@ generate_targets_file <- function() {
       output_files_r <- paste0('"', script_info$outputs, '"', collapse = ", ")
       output_lines <- c(output_lines, sprintf("      c(%s)", output_files_r))
     } else {
-      # No outputs - return TRUE to indicate script ran
-      output_lines <- c(output_lines, sprintf("      TRUE"))
+      # No outputs - return empty character vector
+      output_lines <- c(output_lines, sprintf("      character(0)"))
     }
 
     target_end <- c(

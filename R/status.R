@@ -27,24 +27,18 @@
 #' unlink(temp_dir, recursive = TRUE)
 #' @export
 status <- function(verbose = TRUE) {
-  # Parse the pipeline to get script dependencies
   pipeline_data <- parse()
 
-  # Handle empty pipeline
   if (length(pipeline_data$scripts) == 0) {
     if (verbose) {
-      message("\n[STATUS] \033[1;36mBakepipe Status\033[0m")
-      message("\033[33m   No scripts found in pipeline\033[0m\n")
+      message("No scripts found")
     }
     return(invisible(NULL))
   }
 
-  # Generate _targets.R file
   generate_targets_file()
 
-  # Display header and Scripts table with state information
   if (verbose) {
-    message("\n[STATUS] \033[1;36mBakepipe Status\033[0m")
     display_scripts_table_targets(pipeline_data)
   }
 
@@ -54,6 +48,10 @@ status <- function(verbose = TRUE) {
 #' Display the scripts table using targets backend
 #' @param pipeline_data Parsed pipeline data
 display_scripts_table_targets <- function(pipeline_data) {
+  # Print header
+  message("Bakepipe Status")
+  message("")
+  
   # Get outdated targets from targets package
   outdated <- tryCatch(
     {
@@ -93,110 +91,36 @@ display_scripts_table_targets <- function(pipeline_data) {
   stale_count <- sum(state_vec == "stale")
 
   # Display summary
-  message(paste0(
-    "\033[32m   ", fresh_count, " fresh script",
-    if (fresh_count != 1) "s" else "", "\033[0m"
-  ), appendLF = FALSE)
   if (stale_count > 0) {
-    message(paste0(
-      " - \033[33m", stale_count, " stale script",
-      if (stale_count != 1) "s" else "", "\033[0m"
-    ), appendLF = FALSE)
+    message(sprintf("\033[32m%d fresh\033[0m, \033[33m%d stale\033[0m", fresh_count, stale_count))
+  } else {
+    message(sprintf("\033[32m✓ %d script%s up to date\033[0m", fresh_count, if (fresh_count != 1) "s" else ""))
   }
-  message("\n")
+  message("")
 
-  # Calculate max script name width for alignment
-  max_width <- max(nchar(script_names))
-
-  # Display each script with status indicator, inputs, outputs, and externals
+  # Display each script with status
   for (i in seq_along(script_names)) {
     script <- script_names[i]
     state <- state_vec[i]
     script_info <- pipeline_data$scripts[[script]]
     
-    # Determine staleness of inputs from other scripts
-    input_states <- character(0)
-    
-    # Check input files from other scripts
-    for (input_file in script_info$inputs) {
-      for (producer_script in script_names) {
-        if (input_file %in% pipeline_data$scripts[[producer_script]]$outputs) {
-          input_target_name <- path_to_target_name(producer_script, "output")
-          if (input_target_name %in% outdated) {
-            input_states <- c(input_states, sprintf("%s \033[33m(stale)\033[0m", input_file))
-          } else {
-            input_states <- c(input_states, sprintf("%s \033[32m(fresh)\033[0m", input_file))
-          }
-          break
-        }
-      }
-    }
-    
-    # Determine staleness of externals
-    external_states <- character(0)
-    
-    for (ext_file in script_info$externals) {
-      ext_target_name <- path_to_target_name(ext_file, "")
-      if (ext_target_name %in% outdated) {
-        external_states <- c(external_states, sprintf("%s \033[33m(stale)\033[0m", ext_file))
-      } else {
-        external_states <- c(external_states, sprintf("%s \033[32m(fresh)\033[0m", ext_file))
-      }
-    }
-    
-    # Determine staleness of outputs
-    output_states <- character(0)
-    for (output_file in script_info$outputs) {
-      output_target_name <- path_to_target_name(script, "output")
-      if (output_target_name %in% outdated) {
-        output_states <- c(output_states, sprintf("%s \033[33m(stale)\033[0m", output_file))
-      } else {
-        output_states <- c(output_states, sprintf("%s \033[32m(fresh)\033[0m", output_file))
-      }
-    }
-
     if (state == "fresh") {
-      message(sprintf(
-        "\033[90m[OK] %-*s \033[32m(fresh)\033[0m",
-        max_width, script
-      ))
+      message(sprintf("\033[32m✓\033[0m %s \033[32m(fresh)\033[0m", script))
     } else {
-      message(sprintf(
-        "\033[33m[!] %-*s \033[33m(stale)\033[0m",
-        max_width, script
-      ))
+      message(sprintf("\033[33m!\033[0m %s \033[33m(stale)\033[0m", script))
     }
     
-    # Display inputs as nested list
-    if (length(input_states) > 0) {
-      message("       inputs:")
-      for (input_item in input_states) {
-        message(sprintf("         - %s", input_item))
-      }
-    } else {
-      message("       inputs: (none)")
+    # Show inputs, externals, outputs on separate lines if they exist
+    if (length(script_info$inputs) > 0) {
+      message(sprintf("    inputs: %s", paste(script_info$inputs, collapse = ", ")))
     }
     
-    # Display externals as nested list
-    if (length(external_states) > 0) {
-      message("       externals:")
-      for (ext_item in external_states) {
-        message(sprintf("         - %s", ext_item))
-      }
-    } else {
-      message("       externals: (none)")
+    if (length(script_info$externals) > 0) {
+      message(sprintf("    externals: %s", paste(script_info$externals, collapse = ", ")))
     }
     
-    # Display outputs as nested list
-    if (length(output_states) > 0) {
-      message("       outputs:")
-      for (output_item in output_states) {
-        message(sprintf("         - %s", output_item))
-      }
-    } else {
-      message("       outputs: (none)")
+    if (length(script_info$outputs) > 0) {
+      message(sprintf("    outputs: %s", paste(script_info$outputs, collapse = ", ")))
     }
   }
-
-  message("")
 }
