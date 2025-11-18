@@ -1,4 +1,5 @@
 library(targets)
+library(callr)
 
 list(
   tar_target(input_csv, "input.csv", format = "file"),
@@ -8,7 +9,12 @@ list(
     {
       script_01_process_r
       input_csv
-      source("01_process.R")
+      callr::r(
+        func = function(script_path) {
+          source(script_path, local = TRUE)
+        },
+        args = list(script_path = "01_process.R")
+      )
       c("processed.csv")
     }
   ),
@@ -18,7 +24,12 @@ list(
     {
       script_02_summarize_r
       output_01_process_r
-      source("02_summarize.R")
+      callr::r(
+        func = function(script_path) {
+          source(script_path, local = TRUE)
+        },
+        args = list(script_path = "02_summarize.R")
+      )
       c("summary.csv")
     }
   )

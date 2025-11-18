@@ -35,15 +35,15 @@ write.csv(result, file_out("output.csv"))
   # Should have library(targets) at the top
   expect_match(targets_text, "library\\(targets\\)", ignore.case = FALSE)
 
-  # Should NOT have callr anymore (simplified)
-  expect_no_match(targets_text, "callr::r")
+  # Should have callr for script isolation
+  expect_match(targets_text, "callr::r")
 
   # Should have external input target
   expect_match(targets_text, "tar_target.*input_csv.*input.csv.*format = \"file\"")
 
-  # Should have one target per script that directly sources and returns outputs
+  # Should have one target per script with callr execution
   expect_match(targets_text, "tar_target.*output_process_r")
-  expect_match(targets_text, "source.*process.R")
+  expect_match(targets_text, "callr::r")
   expect_match(targets_text, "output.csv")
   expect_match(targets_text, "format = \"file\"")
 
@@ -222,13 +222,14 @@ write.csv(data, file_out("output.csv"))
   generate_targets_file()
 
   targets_file <- file.path(project_dir, "_targets.R")
-  targets_text <- paste(readLines(targets_file), collapse = "\n")
+  targets_text <- paste(readLines(targets_file), collapse = " ")
 
-  # Should directly use source() without callr wrapper
-  expect_match(targets_text, "source\\(\"test.R\"\\)")
+  # Should use callr for script isolation
+  expect_match(targets_text, "callr::r")
   
-  # Should NOT use callr
-  expect_no_match(targets_text, "callr::r")
+  # callr::r() should be passed a function that sources the script
+  expect_match(targets_text, "func = function\\(script_path\\)")
+  expect_match(targets_text, "source.*script_path.*local = TRUE")
 
   # Cleanup
   setwd(old_wd)

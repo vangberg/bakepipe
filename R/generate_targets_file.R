@@ -19,6 +19,7 @@ generate_targets_file <- function() {
 
   # Add library calls
   lines <- c(lines, "library(targets)")
+  lines <- c(lines, "library(callr)")
   lines <- c(lines, "")
 
   # Add the list of targets
@@ -104,9 +105,14 @@ generate_targets_file <- function() {
       dep_lines <- c(dep_lines, sprintf("      %s", dep))
     }
 
-    # Add script execution
+    # Add script execution via callr for isolation
     exec_lines <- c(
-      sprintf("      source(\"%s\")", script_name)
+      sprintf("      callr::r("),
+      sprintf("        func = function(script_path) {"),
+      sprintf("          source(script_path, local = TRUE)"),
+      sprintf("        },"),
+      sprintf('        args = list(script_path = "%s")', script_name),
+      sprintf("      )")
     )
 
     # Add output vector if script has outputs
