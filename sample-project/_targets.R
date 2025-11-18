@@ -1,4 +1,5 @@
 library(targets)
+library(callr)
 
 list(
   tar_target(raw_data_csv, "raw_data.csv", format = "file"),
@@ -8,7 +9,12 @@ list(
     {
       script_01_clean_data_r
       raw_data_csv
-      source("01_clean_data.R")
+      callr::r(
+        func = function(script_path) {
+          source(script_path, local = TRUE)
+        },
+        args = list(script_path = "01_clean_data.R")
+      )
       c("cleaned_data.csv")
     }
   ),
@@ -18,7 +24,12 @@ list(
     {
       script_02_analyze_data_r
       output_01_clean_data_r
-      source("02_analyze_data.R")
+      callr::r(
+        func = function(script_path) {
+          source(script_path, local = TRUE)
+        },
+        args = list(script_path = "02_analyze_data.R")
+      )
       c("analysis_results.rds")
     }
   ),
@@ -28,7 +39,12 @@ list(
     {
       script_03_generate_report_r
       output_02_analyze_data_r
-      source("03_generate_report.R")
+      callr::r(
+        func = function(script_path) {
+          source(script_path, local = TRUE)
+        },
+        args = list(script_path = "03_generate_report.R")
+      )
       c("report.txt")
     }
   )

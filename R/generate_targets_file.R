@@ -126,7 +126,8 @@ generate_targets_file <- function() {
     }
 
     target_end <- c(
-      sprintf("    }"),
+      sprintf("    },"),
+      sprintf("    format = \"file\""),
       sprintf("  ),")
     )
 

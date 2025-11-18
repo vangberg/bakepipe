@@ -16,7 +16,8 @@ list(
         args = list(script_path = "01_process.R")
       )
       c("processed.csv")
-    }
+    },
+    format = "file"
   ),
   tar_target(script_02_summarize_r, "02_summarize.R", format = "file"),
   tar_target(
@@ -31,6 +32,7 @@ list(
         args = list(script_path = "02_summarize.R")
       )
       c("summary.csv")
-    }
+    },
+    format = "file"
   )
 )
