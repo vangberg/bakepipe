@@ -28,17 +28,20 @@
 #' setwd(old_wd)
 #' unlink(temp_dir, recursive = TRUE)
 #' @export
-run <- function() {
+run <- function(verbose = TRUE) {
   # Parse dependencies to know what files will be created
   deps <- parse()
-  
+
   generate_targets_file()
-  targets::tar_make()
-  
+
+  # Control targets output verbosity
+  callr_args <- list(show = verbose, spinner = verbose)
+  targets::tar_make(callr_arguments = callr_args)
+
   # Get which targets ran in this execution
   progress <- targets::tar_progress(fields = "progress")
   ran_targets <- progress$name[progress$progress == "completed"]
-  
+
   # Map back to output files from the scripts that ran
   output_files <- character(0)
   for (script_name in names(deps$scripts)) {
@@ -47,9 +50,9 @@ run <- function() {
       output_files <- c(output_files, deps$scripts[[script_name]]$outputs)
     }
   }
-  
+
   # Remove duplicates if any
   output_files <- unique(output_files)
-  
+
   invisible(output_files)
 }

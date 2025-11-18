@@ -173,13 +173,13 @@ Bakepipe determines the correct execution order through static analysis of your 
 
 ### Are outputs cached?
 
-Yes! Bakepipe automatically performs incremental execution by tracking file checksums in a `.bakepipe.state` file. After the first run, Bakepipe will only re-run scripts that are "stale" - meaning either:
+Yes! Bakepipe automatically performs incremental execution using the targets backend to track file metadata. After the first run, Bakepipe will only re-run scripts that are "stale" - meaning either:
 
 - The script itself has been modified
 - Any of the script's input files have been modified
 - Any upstream dependencies have been modified
 
-This makes subsequent runs much faster, as only the necessary scripts are executed. Fresh scripts are skipped with a visual indicator showing they're up to date.
+This makes subsequent runs much faster, as only the necessary scripts are executed. Fresh scripts are skipped with a visual indicator showing they're up to date. The targets metadata is stored in the `_targets/` directory (which you should add to `.gitignore`).
 
 ### How does Bakepipe compare to other pipeline tools?
 

@@ -7,7 +7,8 @@
 run(verbose = TRUE)
 }
 \arguments{
-\item{verbose}{Logical. If TRUE (default), prints progress messages to console.}
+\item{verbose}{Logical. If TRUE (default), prints progress messages
+to console.}
 }
 \value{
 Character vector of files that were created or updated

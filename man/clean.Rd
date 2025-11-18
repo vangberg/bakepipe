@@ -7,7 +7,8 @@
 clean(verbose = TRUE)
 }
 \arguments{
-\item{verbose}{Logical. If TRUE (default), prints progress messages to console.}
+\item{verbose}{Logical. If TRUE (default), prints progress messages
+to console.}
 }
 \value{
 Character vector of file paths that were actually removed
@@ -29,7 +30,7 @@ old_wd <- getwd()
 setwd(file.path(temp_dir, "sample-project"))
 
 # Run the pipeline first to create output files
-run(verbose = FALSE)
+run()
 
 # Now clean up the generated files
 removed_files <- clean()
