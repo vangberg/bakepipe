@@ -71,14 +71,17 @@ displaying pipeline status information to the console.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Display current pipeline status</span></span></span>
 <span class="r-in"><span><span class="fu">status</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Bakepipe Status</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [STATUS] <span style="color: #00BBBB; font-weight: bold;">Bakepipe Status</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">   0 fresh scripts</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>  - <span style="color: #BBBB00;">2 stale scripts</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">[!] 01_process.R   </span><span style="color: #BBBB00; font-weight: 100;">(stale)</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">[!] 02_summarize.R </span><span style="color: #BBBB00; font-weight: 100;">(stale)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">0 fresh</span>, <span style="color: #BBBB00;">2 stale</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> 01_process.R <span style="color: #BBBB00;">(stale)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     externals: input.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     outputs: processed.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> 02_summarize.R <span style="color: #BBBB00;">(stale)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     inputs: processed.csv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     outputs: summary.csv</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># This will show which scripts are fresh (up-to-date) </span></span></span>
 <span class="r-in"><span><span class="co"># and which are stale (need to be re-run)</span></span></span>

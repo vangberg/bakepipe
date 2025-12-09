@@ -5,6 +5,13 @@ reproducible pipelines. It’s designed for scientists and analysts who
 use R and prefer to keep their workflows in scripts, but need better
 management of file dependencies.
 
+Under the hood, Bakepipe uses
+[targets](https://docs.ropensci.org/targets/) to manage your pipeline —
+much like how [jj](https://github.com/martinvonz/jj) is built on git.
+Bakepipe provides a simpler, more accessible interface to pipeline
+management without requiring you to refactor your scripts into
+functions.
+
 **Key features:**
 
 - **Automatic dependency detection** - determines script execution order
@@ -241,9 +248,9 @@ calls.
 
 ### Are outputs cached?
 
-Yes! Bakepipe automatically performs incremental execution by tracking
-file checksums in a `.bakepipe.state` file. After the first run,
-Bakepipe will only re-run scripts that are “stale” - meaning either:
+Yes! Bakepipe automatically performs incremental execution using the
+targets backend to track file metadata. After the first run, Bakepipe
+will only re-run scripts that are “stale” - meaning either:
 
 - The script itself has been modified
 - Any of the script’s input files have been modified
@@ -251,7 +258,8 @@ Bakepipe will only re-run scripts that are “stale” - meaning either:
 
 This makes subsequent runs much faster, as only the necessary scripts
 are executed. Fresh scripts are skipped with a visual indicator showing
-they’re up to date.
+they’re up to date. The targets metadata is stored in the `_targets/`
+directory (which you should add to `.gitignore`).
 
 ### How does Bakepipe compare to other pipeline tools?
 

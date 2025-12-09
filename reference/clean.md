@@ -35,22 +35,25 @@ old_wd <- getwd()
 setwd(file.path(temp_dir, "sample-project"))
 
 # Run the pipeline first to create output files
-run(verbose = FALSE)
-#> [1] "processed.csv" "summary.csv"  
+run()
+#> + script_02_summarize_r dispatched
+#> ✔ script_02_summarize_r completed [0ms, 266 B]
+#> + input_csv dispatched
+#> ✔ input_csv completed [0ms, 14 B]
+#> + script_01_process_r dispatched
+#> ✔ script_01_process_r completed [0ms, 204 B]
+#> + output_01_process_r dispatched
+#> ✔ output_01_process_r completed [261ms, 36 B]
+#> + output_02_summarize_r dispatched
+#> ✔ output_02_summarize_r completed [252ms, 22 B]
+#> ✔ ended pipeline [694ms, 5 completed, 0 skipped]
+#> 
 
 # Now clean up the generated files
 removed_files <- clean()
-#> 
-#> [CLEAN] Bakepipe Clean
-#>    Found 2 output files to remove
-#> [RM]  processed.csv
-#> [RM]  summary.csv
-#> 
-#> [SUMMARY]
-#>    Removed 2 files
-#> 
+#> ✓ removed 4 artifacts
 print(removed_files)
-#> [1] "processed.csv" "summary.csv"  
+#> [1] "processed.csv" "summary.csv"   "_targets.R"   
 
 # Restore working directory and clean up
 setwd(old_wd)

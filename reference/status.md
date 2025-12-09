@@ -35,14 +35,17 @@ setwd(file.path(temp_dir, "sample-project"))
 
 # Display current pipeline status
 status()
+#> Bakepipe Status
 #> 
-#> [STATUS] Bakepipe Status
-#>    0 fresh scripts
-#>  - 2 stale scripts
 #> 
-#> [!] 01_process.R   (stale)
-#> [!] 02_summarize.R (stale)
+#> 0 fresh, 2 stale
 #> 
+#> ! 01_process.R (stale)
+#>     externals: input.csv
+#>     outputs: processed.csv
+#> ! 02_summarize.R (stale)
+#>     inputs: processed.csv
+#>     outputs: summary.csv
 
 # This will show which scripts are fresh (up-to-date) 
 # and which are stale (need to be re-run)
