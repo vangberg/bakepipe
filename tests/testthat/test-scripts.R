@@ -176,3 +176,43 @@ test_that("scripts() works from subdirectory", {
   setwd(old_wd)
   unlink(project_dir, recursive = TRUE)
 })
+
+test_that("scripts() excludes hidden directories", {
+  # Create a temporary directory structure
+  temp_dir <- tempdir()
+  old_wd <- getwd()
+
+  # Setup: Create project with hidden directories
+  project_dir <- file.path(temp_dir, "test_project")
+  hidden_dir <- file.path(project_dir, ".cache")
+  visible_dir <- file.path(project_dir, "scripts")
+  dir.create(hidden_dir, recursive = TRUE)
+  dir.create(visible_dir, recursive = TRUE)
+
+  # Create _bakepipe.R in the project root
+  bakepipe_file <- file.path(project_dir, "_bakepipe.R")
+  file.create(bakepipe_file)
+
+  # Create R files in visible and hidden directories
+  visible_script <- file.path(visible_dir, "analysis.R")
+  hidden_script <- file.path(hidden_dir, "cached.R")
+  root_script <- file.path(project_dir, "main.R")
+  file.create(visible_script)
+  file.create(hidden_script)
+  file.create(root_script)
+
+  # Change to project directory
+  setwd(project_dir)
+
+  # Test: scripts() should only find files in visible directories
+  result <- scripts()
+  expect_type(result, "character")
+  expect_length(result, 2)
+  expect_true(normalizePath(visible_script) %in% result)
+  expect_true(normalizePath(root_script) %in% result)
+  expect_false(normalizePath(hidden_script) %in% result)
+
+  # Cleanup
+  setwd(old_wd)
+  unlink(project_dir, recursive = TRUE)
+})
