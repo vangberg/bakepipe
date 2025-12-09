@@ -37,16 +37,16 @@ setwd(file.path(temp_dir, "sample-project"))
 # Execute the pipeline
 created_files <- run()
 #> + script_02_summarize_r dispatched
-#> ✔ script_02_summarize_r completed [1ms, 266 B]
+#> ✔ script_02_summarize_r completed [0ms, 266 B]
 #> + input_csv dispatched
 #> ✔ input_csv completed [0ms, 14 B]
 #> + script_01_process_r dispatched
 #> ✔ script_01_process_r completed [0ms, 204 B]
 #> + output_01_process_r dispatched
-#> ✔ output_01_process_r completed [259ms, 36 B]
+#> ✔ output_01_process_r completed [268ms, 36 B]
 #> + output_02_summarize_r dispatched
-#> ✔ output_02_summarize_r completed [250ms, 22 B]
-#> ✔ ended pipeline [691ms, 5 completed, 0 skipped]
+#> ✔ output_02_summarize_r completed [261ms, 22 B]
+#> ✔ ended pipeline [718ms, 5 completed, 0 skipped]
 #> 
 
 # The function returns paths of files that were created or updated
