@@ -4,6 +4,10 @@ sample-project/analysis_results.rds
 sample-project/report.txt
 sample-project/.bakepipe.state
 
+# Targets backend files
+_targets.R
+_targets/
+
 # R files
 .Rproj.user
 .Rhistory
