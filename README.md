@@ -1,5 +1,8 @@
 # Bakepipe
 
+> [!WARNING]
+> Bakepipe does not work as-is. I am keeping it online as inspiration because I think the design is neat.
+
 Bakepipe is an R library that turns your script-based workflows into reproducible pipelines. It's designed for scientists and analysts who use R and prefer to keep their workflows in scripts, but need better management of file dependencies.
 
 Under the hood, Bakepipe uses [targets](https://docs.ropensci.org/targets/) to manage your pipeline — much like how [jj](https://github.com/martinvonz/jj) is built on git. Bakepipe provides a simpler, more accessible interface to pipeline management without requiring you to refactor your scripts into functions.
