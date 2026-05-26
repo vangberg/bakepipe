@@ -1,5 +1,8 @@
 # Bakepipe
 
+> \[!WARNING\] Bakepipe does not work as-is. I am keeping it online as
+> inspiration because I think the design is neat.
+
 Bakepipe is an R library that turns your script-based workflows into
 reproducible pipelines. It’s designed for scientists and analysts who
 use R and prefer to keep their workflows in scripts, but need better
@@ -68,6 +71,7 @@ refactor into functions or learn complex new syntaxes.
 ### Installation
 
 ``` r
+
 # Install from GitHub using devtools
 devtools::install_github("vangberg/bakepipe")
 ```
@@ -117,6 +121,7 @@ graph LR
 Here is what the scripts look like:
 
 ``` r
+
 # analysis.R
 library(bakepipe)
 library(dplyr)
@@ -129,6 +134,7 @@ write.csv(monthly, file_out("monthly_sales.csv")) # Output file
 ```
 
 ``` r
+
 # plots.R
 library(bakepipe)
 library(ggplot2)
@@ -140,6 +146,7 @@ ggplot(monthly, aes(month, revenue, color = category)) +
 ```
 
 ``` r
+
 # report.R
 library(bakepipe)
 library(rmarkdown)
@@ -160,6 +167,7 @@ data type or file format (e.g., `.csv`, `.rds`, `.fst`).
 To execute your pipeline:
 
 ``` r
+
 bakepipe::run()
 ```
 
@@ -176,6 +184,7 @@ produced by any script in the pipeline), use
 `path`, so it can be used directly when reading the file:
 
 ``` r
+
 raw_data <- read.csv(bakepipe::external_in("raw_data.csv"))
 config <- readRDS(bakepipe::external_in("config.rds"))
 ```
@@ -192,6 +201,7 @@ pipeline, use `bakepipe::file_in("path/to/file")`. `file_in(path)`
 returns `path`, so it can be used directly when reading the file:
 
 ``` r
+
 data <- read.csv(bakepipe::file_in("data.csv"))
 ```
 
@@ -202,6 +212,7 @@ To mark a file as output, use `bakepipe::file_out("path/to/file")`.
 the file:
 
 ``` r
+
 write.csv(data, bakepipe::file_out("data.csv"))
 ```
 
@@ -215,6 +226,7 @@ updated. If a script fails, Bakepipe stops execution and provides R’s
 standard error messages, allowing for easy debugging.
 
 ``` r
+
 bakepipe::run()
 ```
 
@@ -227,6 +239,7 @@ relationships between your files in the console, helping you visualize
 your workflow.
 
 ``` r
+
 bakepipe::status()
 ```
 
@@ -312,6 +325,7 @@ refactor the scripts into functions, and then use the `tar_target`
 function to define the targets.
 
 ``` r
+
 # functions.R
 
 get_sales_data <- function(file) {
@@ -339,6 +353,7 @@ generate_report <- function(data) {
 ```
 
 ``` r
+
 # _targets.R
 
 library(targets)

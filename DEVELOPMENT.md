@@ -7,6 +7,7 @@
 Install required R packages:
 
 ``` r
+
 install.packages(c("devtools", "testthat", "roxygen2"))
 ```
 
@@ -22,6 +23,7 @@ R CMD INSTALL bakepipe_0.0.0.9000.tar.gz
 Or using devtools:
 
 ``` r
+
 devtools::install()
 ```
 
@@ -30,6 +32,7 @@ devtools::install()
 ### Using devtools (recommended)
 
 ``` r
+
 devtools::test()
 ```
 
@@ -44,6 +47,7 @@ R CMD check --no-manual --no-vignettes .
 Load the package and test functions:
 
 ``` r
+
 library(bakepipe)
 
 # Test file_in
@@ -85,6 +89,7 @@ demonstrate bakepipe functionality and for testing during development.
 #### Option 1: Manual setup
 
 ``` r
+
 devtools::load_all()
 setwd("sample-project")
 status()  # View pipeline structure
@@ -103,6 +108,7 @@ R  # The .Rprofile automatically loads bakepipe
 The `_bakepipe.R` file marks the root directory of a bakepipe project:
 
 ``` r
+
 # Bakepipe root marker
 # This file marks the root directory of a bakepipe project
 ```
@@ -119,6 +125,7 @@ After running the pipeline, the following files should be generated: -
 ## Generating Documentation
 
 ``` r
+
 devtools::document()
 ```
 

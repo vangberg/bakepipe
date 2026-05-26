@@ -41,12 +41,12 @@ run()
 #> + input_csv dispatched
 #> ✔ input_csv completed [0ms, 14 B]
 #> + script_01_process_r dispatched
-#> ✔ script_01_process_r completed [1ms, 204 B]
+#> ✔ script_01_process_r completed [0ms, 204 B]
 #> + output_01_process_r dispatched
-#> ✔ output_01_process_r completed [267ms, 36 B]
+#> ✔ output_01_process_r completed [275ms, 36 B]
 #> + output_02_summarize_r dispatched
-#> ✔ output_02_summarize_r completed [260ms, 22 B]
-#> ✔ ended pipeline [716ms, 5 completed, 0 skipped]
+#> ✔ output_02_summarize_r completed [269ms, 22 B]
+#> ✔ ended pipeline [740ms, 5 completed, 0 skipped]
 #> 
 
 # Now clean up the generated files
